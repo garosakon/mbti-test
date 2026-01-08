@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>全方位性格測驗 (終極整合版)</title>
+    
+    <!-- 核心庫：Tailwind CSS (樣式), Alpine.js (邏輯), Lucide (圖示), html2canvas (截圖) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        body { font-family: "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        [x-cloak] { display: none !important; }
+        
+        /* 自定義動畫 */
+        .fade-enter { opacity: 0; transform: translateY(10px); }
+        .fade-enter-active { opacity: 1; transform: translateY(0); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* 針對 Radio Button 的優化樣式 */
+        .radio-scale:checked { 
+            background-color: #4F46E5; 
+            border-color: #4F46E5;
+        }
+        
+        /* 滾動條美化 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    </style>
+
+    <script>
+        // --- 93題版原始數據 ---
+        const raw93Questions = `
+1	當我某天想去一個地方時，我通常會：a.去之前先想好該做的事；b.去了再說	a:J,b:P
+2	我覺得自己更傾向於是一個：a.隨遇而安的人；b.做事遵循計畫的人	a:P,b:J
+3	如果我是一位老師的話，我更喜歡教：a.偏重於事實的課程；b.偏重於理論的課程	a:S, b:N
+4	我通常是一個：a.容易和大家打成一片的人；b.說話不是很多的人	a:E, b:I
+5	我通常和_____相處較好：a.愛想像的人；b.現實的人	a:N, b:S
+6	我覺得自己更是一個：a.重情感的人；b.重理智的人	a:F,b:T
+7	我更喜歡：a.按興致做事情；b.按計畫做事情	a:P,b:J
+8	我：a.很容易被別人理解；b.很難被別人理解	a:E,b:I
+9	按日程表做事：a.正合我意；b.束縛了我	a:J,b:P
+10	當有一件具體的工作要做時，我喜歡：a.事先就規劃好，寫下時間表；b.邊做邊調整	a:J,b:P
+11	在多數情況下，我更喜歡：a.想到哪做到哪；b.按日程表執行	a:P,b:J
+12	大多數人說我是一個：a.不太把事情告訴別人的人；b.暢所欲言的人	a:I,b:E
+13	我更願意被別人看成是：a.一個注重實際的人；b.一個足智多謀的人	a:S,b:N
+14	在一群人中，我通常：a.容易主動去結識新朋友；b.更多時候等著別人來認識我	a:E,b:I
+15	我更願意和____交朋友：a.總能有創新想法的人；b.腳踏實地的人	a:N,b:S
+16	決策時，我更傾向於：a.考慮人的因素；b.考慮事情本身	a:F,b:T
+17	我做事情更喜歡：a.先看一看有什麼新情況後再作打算；b.盡早就把事情定下來	a:P,b:J
+18	更多的時候，我喜歡：a.自己一個人待著；b.和他人在一起	a:I,b:E
+19	身邊有很多人：a.會令我變得更有精神；b.會令我感到疲於應付	a:E,b:I
+20	我更喜歡：a.早一點就把聚會或活動的時間定下來；b.到時候再定	a:J,b:P
+21	在旅行時，我更喜歡：a.根據情況安排活動；b.事先就想清楚一整天的活動	a:P,b:J
+22	在聚會活動中，我往往：a.會感到厭煩、疲倦；b.能過得高興、盡興	a:I,b:E
+23	我更喜歡：a.和他人交往；b.和自己的內心交流	a:E,b:I
+24	我更喜歡和____的人打交道：a.想法新奇、思維敏捷的人；b.講話有根有據、遵循常理的人	a:N,b:S
+25	在日常工作中，我更喜歡：a.在時間緊迫的情況下，爭分奪秒地工作；b.早作計畫並盡早完成，以免在壓力下工作	a:J,b:P
+26	我覺得別人通常：a.要花較長的時間才能和我熟悉起來；b.很快就能和我熟悉起來	a:I,b:E
+27	你更喜歡：a.實際的；b.理論的	a:S,b:N
+28	你更喜歡：a.少許朋友；b.許多朋友	a:I,b:E
+29	你更喜歡：a.井井有條；b.即興隨意	a:J,b:P
+30	你更喜歡：a.想像出來的；b.現實存在的	a:N,b:S
+31	你更喜歡：a.溫暖的；b.客觀的	a:F,b:T
+32	你更喜歡：a.公正的；b.熱情的	a:F,b:T
+33	你更喜歡：a.建造；b.發明	a:T,b:F
+34	你更喜歡：a.安靜的；b.好交際的	a:I,b:E
+35	你更喜歡：a.理論；b.事實	a:T,b:F
+36	你更喜歡：a.同情憐憫；b.邏輯法則	a:F,b:T
+37	你更喜歡：a.分析；b.感受	a:T,b:F
+38	你更喜歡：a.理智多思；b.細膩善感	a:T,b:F
+39	你更喜歡：a.想像；b.實際	a:N,b:S
+40	你更喜歡：a.慷慨的；b.堅定的	a:F,b:T
+41	你更喜歡：a.一視同仁；b.體恤照顧	a:F,b:T
+42	你更喜歡：a.生產；b.創作	a:J,b:P
+43	你更喜歡：a.可能的；b.必然的	a:J,b:P
+44	你更喜歡：a.關心溫暖；b.堅強有力	a:F,b:T
+45	你更喜歡：a.實用價值；b.情感需要	a:T,b:F
+46	你更喜歡：a.製作；b.設計	a:T,b:F
+47	你更喜歡：a.新奇的；b.已知的	a:N,b:S
+48	你更喜歡：a.同情；b.分析	a:F,b:T
+49	你更喜歡：a.堅定的；b.心腸軟的	a:T,b:F
+50	你更喜歡：a.直觀；b.抽象	a:N,b:S
+51	你更喜歡：a.忠誠；b.堅定	a:F,b:T
+52	你更喜歡：a.競爭性；b.好心腸	a:F,b:T
+53	你更喜歡：a.實用性；b.創新性	a:T,b:F
+54	當我有一項重要工作需要在一個星期內完成時，我會：a.事先寫下具體的步驟和時間；b.直接開始做	a:J,b:P
+55	對我來說，在社交場合主動和別人說話或總能有話說：a.是件蠻難的事；b.是一件很輕鬆的事	a:I,b:E
+56	做一件很多人都做的事情時，我喜歡：a.按常規方法去做；b.自己想出一種新方法	a:S,b:N
+57	新認識我的人一般：a.較快就能知道我的興趣所在；b.只有在真正和我熟悉之後才會知道我的興趣	a:N,b:S
+58	我通常更喜歡上那些：a.教原理和理論的課；b.有具體應用性的課	a:T,b:F
+59	我更欣賞：a.一個真情流露的人；b.一個始終有著理性的人	a:F,b:T
+60	我覺得按日程表做事：a.會有好處，但不喜歡；b.很適合自己	a:P,b:J
+61	當我和一群人在一起時，我更多的時候是：a.和認識的人一對一地說話；b.參加大家的談話	a:I,b:E
+62	參加聚會時，我：a.說的時候多；b.聽別人說的時候多	a:E,b:I
+63	為週末要做的事情定一個日程表：a.很合我意；b.讓我感覺很沒意思	a:P,b:J
+64	哪一種對我來說是更高的評價：a.有競爭心；b.有同情心	a:T,b:F
+65	我通常更喜歡：a.提前安排好社交活動；b.到時候再說	a:J,b:P
+66	當我有一個工作量較大的任務時，我往往是：a.先開始做,然後再考慮下一步的任務；b.事先把它拆成一個個小的任務	a:P,b:J
+67	我覺得自己：a.只有和那些志趣相投的人才可以保持長時間交談；b.只要願意，和幾乎任何一個人都可以長時間交談	a:I,b:E
+68	我更喜歡：a.按大家常用的、已經行之有效的方法做事；b.分析尚有錯誤的地方，並攻克尚未解決的問題	a:S,b:N
+69	閒暇讀書時，我：a.更欣賞作者怪異、獨特的表達方式；b.更願意接受作者具體明瞭的表達方式	a:N,b:S
+70	我更願意有這樣的老闆：a.寬容仁慈但經常多變的；b.態度嚴厲但總是講理的	a:F,b:T
+71	我喜歡按____工作：a.當天的具體情況來安排；b.已定好的時間表	a:P,b:J
+72	我通常：a.可以輕鬆地和任何人談很長時間；b.只對某些人或在某些情況下，才會暢所欲言	a:E,b:I
+73	在做一個決定時，我會更多的考慮：a.客觀的因素；b.他人的感受和建議	a:T,b:F
+74	你更喜歡：a.寧靜的；b.活躍的	a:I,b:E
+75	你更喜歡：a.有計畫的；b.無計畫的	a:J,b:P
+76	你更喜歡：a.抽象的；b.具體的	a:N,b:S
+77	你更喜歡：a.溫和的；b.堅定的	a:F,b:T
+78	你更喜歡：a.思想；b.感受	a:N,b:S
+79	你更喜歡：a.事實；b.猜想	a:T,b:F
+80	你更喜歡：a.衝動；b.果斷	a:F,b:T
+81	你更喜歡：a.熱鬧；b.安靜	a:E,b:I
+82	你更喜歡：a.恬靜的；b.外向的	a:I,b:E
+83	你更喜歡：a.系統的；b.隨意的	a:J,b:P
+84	你更喜歡：a.理論推測；b.真憑實據	a:T,b:F
+85	你更喜歡：a.敏感細膩；b.公正合理	a:F,b:T
+86	你更喜歡：a.以理服人；b.以情動人	a:T,b:F
+87	你更喜歡：a.闡述事實；b.表達思想	a:T,b:F
+88	你更喜歡：a.不受拘束的；b.有計畫的	a:J,b:P
+89	你更喜歡：a.沉默的；b.健談的	a:I,b:E
+90	你更喜歡：a.井井有條；b.隨意安排	a:J,b:P
+91	你更喜歡：a.理想；b.現狀	a:N,b:S
+92	你更喜歡：a.善解人意；b.深謀遠慮	a:F,b:T
+93	你更喜歡：a.注重利益；b.注重情感	a:T,b:F`;
+
+        function app() {
+            return {
+                mode: 'HOME', // HOME, PRO93, FULL360, RESULT_93, RESULT_360
+                
+                // 93題版數據
+                q93_list: [],
+                q93_page: 0,
+                q93_answers: {},
+                q93_pageSize: 10,
+
+                // 全方位版數據 (保留原版結構)
+                step360: 'INTRO',
+                answers360: { mbti: {}, t1: {}, aohc: {} },
+                data360: {
+                    mbti: [
+                        { id: 1, textA: "先了解別人想法再決定", textB: "不商量就下決定", dimA: 'E', dimB: 'I' },
+                        { id: 2, textA: "富於想像或憑直覺", textB: "講求精確與事實", dimA: 'N', dimB: 'S' },
+                        { id: 3, textA: "根據分析做評斷", textB: "了解需要與價值做評斷", dimA: 'T', dimB: 'F' },
+                        { id: 4, textA: "順著他人意思承諾", textB: "自己做承諾並實踐", dimA: 'P', dimB: 'J' },
+                        { id: 5, textA: "安靜獨自思考", textB: "與他人打成一片", dimA: 'I', dimB: 'E' },
+                        { id: 6, textA: "運用熟悉好方法", textB: "嘗試運用新方法", dimA: 'S', dimB: 'N' },
+                        { id: 7, textA: "合乎邏輯按部就班", textB: "根據體驗及信息", dimA: 'T', dimB: 'F' },
+                        { id: 8, textA: "訂下最後期限", textB: "擬訂時間表嚴格遵行", dimA: 'P', dimB: 'J' },
+                        { id: 9, textA: "稍談笑話再思考", textB: "盡興暢談再思考", dimA: 'E', dimB: 'I' },
+                        { id: 10, textA: "設想各種可能", textB: "按實際情況處理", dimA: 'N', dimB: 'S' },
+                        { id: 11, textA: "擅長於思考", textB: "敏於感覺", dimA: 'T', dimB: 'F' },
+                        { id: 12, textA: "事前詳細考慮", textB: "稍作考慮明快決定", dimA: 'P', dimB: 'J' },
+                        { id: 13, textA: "思想情感不為人知", textB: "與人分享活動", dimA: 'I', dimB: 'E' },
+                        { id: 14, textA: "喜歡抽象與理論", textB: "喜歡具體與實際", dimA: 'N', dimB: 'S' },
+                        { id: 15, textA: "協助探索感受", textB: "協助做合理決定", dimA: 'F', dimB: 'T' },
+                        { id: 16, textA: "答案彈性可修改", textB: "答案明確可預知", dimA: 'P', dimB: 'J' },
+                        { id: 17, textA: "很少表達內心", textB: "自在表達內心", dimA: 'I', dimB: 'E' },
+                        { id: 18, textA: "傾向從大處著眼", textB: "喜歡從小處著手", dimA: 'N', dimB: 'S' },
+                        { id: 19, textA: "憑信念做決定", textB: "分析事實做決定", dimA: 'F', dimB: 'T' },
+                        { id: 20, textA: "事先詳細計劃", textB: "臨時視需要計劃", dimA: 'J', dimB: 'P' },
+                        { id: 21, textA: "喜歡結交新朋友", textB: "喜歡獨處或熟人", dimA: 'E', dimB: 'I' },
+                        { id: 22, textA: "重視概念", textB: "重視事實", dimA: 'N', dimB: 'S' },
+                        { id: 23, textA: "相信自己想法", textB: "相信證實結論", dimA: 'F', dimB: 'T' },
+                        { id: 24, textA: "盡量記事", textB: "少用記事", dimA: 'J', dimB: 'P' },
+                        { id: 25, textA: "團體中討論問題", textB: "自己想出再討論", dimA: 'E', dimB: 'I' },
+                        { id: 26, textA: "擬定計劃確實執行", textB: "擬定但不一定執行", dimA: 'S', dimB: 'N' },
+                        { id: 27, textA: "我是理性的", textB: "我是感性的", dimA: 'T', dimB: 'F' },
+                        { id: 28, textA: "隨心所欲做事", textB: "先了解別人期望", dimA: 'P', dimB: 'J' },
+                        { id: 29, textA: "喜歡成為焦點", textB: "喜歡退居幕後", dimA: 'E', dimB: 'I' },
+                        { id: 30, textA: "喜歡自由想像", textB: "傾向檢視實情", dimA: 'N', dimB: 'S' },
+                        { id: 31, textA: "體驗感人情境", textB: "運用能力分析", dimA: 'F', dimB: 'T' },
+                        { id: 32, textA: "預定時間內開會", textB: "一切妥當才開會", dimA: 'J', dimB: 'P' }
+                    ],
+                    t1: [
+                        { id: 1, pairA: {text1:'姿勢手勢多', val1:'A1', text2:'姿勢手勢少', val2:'A2'}, pairB: {text1:'說話溫和', val1:'B1', text2:'說話大聲', val2:'B2'} },
+                        { id: 2, pairA: {text1:'動作灑脫', val1:'A1', text2:'動作拘謹', val2:'A2'}, pairB: {text1:'說話慢', val1:'B1', text2:'說話快', val2:'B2'} },
+                        { id: 3, pairA: {text1:'表情多', val1:'A1', text2:'表情少', val2:'A2'}, pairB: {text1:'動作慢', val1:'B1', text2:'動作快', val2:'B2'} },
+                        { id: 4, pairA: {text1:'音調變化多', val1:'A1', text2:'音調變化少', val2:'A2'}, pairB: {text1:'說話後傾', val1:'B1', text2:'說話前傾', val2:'B2'} },
+                        { id: 5, pairA: {text1:'喜歡接觸人', val1:'A1', text2:'喜歡單純工作', val2:'A2'}, pairB: {text1:'意見婉轉', val1:'B1', text2:'意見強勢', val2:'B2'} },
+                        { id: 6, pairA: {text1:'活潑輕鬆', val1:'A1', text2:'嚴肅型', val2:'A2'}, pairB: {text1:'少冒險', val1:'B1', text2:'不怕冒險', val2:'B2'} },
+                        { id: 7, pairA: {text1:'依感覺決定', val1:'A1', text2:'依事實決定', val2:'A2'}, pairB: {text1:'少給壓力', val1:'B1', text2:'常給壓力', val2:'B2'} },
+                        { id: 8, pairA: {text1:'易露感情', val1:'A1', text2:'不易露感情', val2:'A2'}, pairB: {text1:'少眼神接觸', val1:'B1', text2:'多眼神接觸', val2:'B2'} }
+                    ],
+                    aohc: [
+                        { id: 1, words: [{type:'C', text:'強力的'}, {type:'O', text:'朝氣蓬勃'}, {type:'H', text:'中庸的'}, {type:'A', text:'老練的'}] },
+                        { id: 2, words: [{type:'C', text:'積極的'}, {type:'O', text:'情緒化的'}, {type:'H', text:'隨和的'}, {type:'A', text:'一致的'}] },
+                        { id: 3, words: [{type:'C', text:'直接了當'}, {type:'O', text:'表情豐富'}, {type:'H', text:'和藹可親'}, {type:'A', text:'精確的'}] },
+                        { id: 4, words: [{type:'C', text:'堅韌的'}, {type:'O', text:'以人為本'}, {type:'H', text:'溫和的'}, {type:'A', text:'完美主義'}] },
+                        { id: 5, words: [{type:'C', text:'膽大的'}, {type:'O', text:'衝動的'}, {type:'H', text:'親切的'}, {type:'A', text:'謹慎的'}] },
+                        { id: 6, words: [{type:'C', text:'競爭的'}, {type:'O', text:'情感豐富'}, {type:'H', text:'支持的'}, {type:'A', text:'準確的'}] },
+                        { id: 7, words: [{type:'C', text:'冒險者'}, {type:'O', text:'健談的'}, {type:'H', text:'輕鬆的'}, {type:'A', text:'確實的'}] },
+                        { id: 8, words: [{type:'C', text:'好議論'}, {type:'O', text:'喜愛有趣'}, {type:'H', text:'耐心的'}, {type:'A', text:'邏輯的'}] },
+                        { id: 9, words: [{type:'C', text:'勇敢的'}, {type:'O', text:'不做作的'}, {type:'H', text:'穩定的'}, {type:'A', text:'組織性'}] },
+                        { id: 10, words: [{type:'C', text:'負責的'}, {type:'O', text:'樂觀的'}, {type:'H', text:'體貼的'}, {type:'A', text:'周全的'}] },
+                        { id: 11, words: [{type:'C', text:'率直的'}, {type:'O', text:'興高采烈'}, {type:'H', text:'忠心的'}, {type:'A', text:'嚴肅的'}] },
+                        { id: 12, words: [{type:'C', text:'獨立的'}, {type:'O', text:'狂熱的'}, {type:'H', text:'好傾聽者'}, {type:'A', text:'高標準'}] }
+                    ]
+                },
+
+                // 通用結果與紀錄
+                result: {},
+                history: [],
+                saveName: '',
+                mbtiDescriptions: {
+                    "INTJ": "完美主義 (建築師)", "INTP": "熱愛知識 (邏輯學家)", "ENTJ": "天生領導 (指揮官)", "ENTP": "智力挑戰 (辯論家)",
+                    "INFJ": "神秘激勵 (提倡者)", "INFP": "詩意善良 (調停者)", "ENFJ": "魅力領導 (主人公)", "ENFP": "熱情創造 (競選者)",
+                    "ISTJ": "可靠實際 (物流師)", "ISFJ": "溫暖負責 (守衛者)", "ESTJ": "高效管理 (總經理)", "ESFJ": "熱心助人 (執政官)",
+                    "ISTP": "大膽實作 (鑑賞家)", "ISFP": "靈活藝術 (探險家)", "ESTP": "精力充沛 (企業家)", "ESFP": "熱情自發 (表演者)"
+                },
+                
+                init() {
+                    this.loadHistory();
+                    this.parse93Questions();
+                    
+                    if (typeof lucide !== 'undefined') {
+                        setTimeout(() => lucide.createIcons(), 100);
+                    }
+                },
+
+                loadHistory() {
+                    const saved = localStorage.getItem('mbti_universal_history');
+                    if (saved) this.history = JSON.parse(saved);
+                },
+
+                // ------------------ 93題版邏輯 ------------------
+                parse93Questions() {
+                    const lines = raw93Questions.trim().split('\n');
+                    this.q93_list = lines.map((line, idx) => {
+                        const parts = line.split('\t');
+                        const qId = idx + 1;
+                        const text = parts[1].split('：')[0];
+                        const optsRaw = parts[1].split('：')[1] || parts[1];
+                        const opts = optsRaw.split('；');
+                        const typeCode = parts[2].trim();
+                        
+                        return {
+                            id: qId,
+                            text: text,
+                            optA: opts[0].replace('a.','').replace('a ',''),
+                            optB: opts[1] ? opts[1].replace('b.','').replace('b ','') : 'N/A',
+                            typeInfo: typeCode
+                        };
+                    });
+                },
+
+                get current93PageQuestions() {
+                    const start = this.q93_page * this.q93_pageSize;
+                    return this.q93_list.slice(start, start + this.q93_pageSize);
+                },
+
+                get is93PageComplete() {
+                    const currentQs = this.current93PageQuestions;
+                    return currentQs.every(q => this.q93_answers[q.id]);
+                },
+                
+                get total93Pages() {
+                    return Math.ceil(this.q93_list.length / this.q93_pageSize);
+                },
+
+                next93Page() {
+                    if (this.q93_page < this.total93Pages - 1) {
+                        this.q93_page++;
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else {
+                        this.calc93Result();
+                    }
+                },
+
+                prev93Page() {
+                    if (this.q93_page > 0) {
+                        this.q93_page--;
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                },
+
+                calc93Result() {
+                    let s = { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 };
+                    
+                    this.q93_list.forEach(q => {
+                        const val = this.q93_answers[q.id];
+                        if(!val) return;
+
+                        // 權重轉換: 1=A(2分), 2=A(1分), 3=中立, 4=B(1分), 5=B(2分)
+                        let scoreA = 0, scoreB = 0;
+                        if(val === 1) scoreA = 2;
+                        if(val === 2) scoreA = 1;
+                        if(val === 4) scoreB = 1;
+                        if(val === 5) scoreB = 2;
+
+                        const typeInfo = q.typeInfo;
+                        const typeCode = typeInfo.charAt(2); // 取最後一個字符判斷維度
+
+                        // 判斷維度與加分
+                        // 原始數據: a:J,b:P -> typeInfo include 'a:J' means A is J
+                        if(typeInfo.includes('a:E')) { s.E += scoreA; s.I += scoreB; }
+                        else if(typeInfo.includes('a:I')) { s.I += scoreA; s.E += scoreB; }
+                        
+                        else if(typeInfo.includes('a:S')) { s.S += scoreA; s.N += scoreB; }
+                        else if(typeInfo.includes('a:N')) { s.N += scoreA; s.S += scoreB; }
+
+                        else if(typeInfo.includes('a:T')) { s.T += scoreA; s.F += scoreB; }
+                        else if(typeInfo.includes('a:F')) { s.F += scoreA; s.T += scoreB; }
+
+                        else if(typeInfo.includes('a:J')) { s.J += scoreA; s.P += scoreB; }
+                        else if(typeInfo.includes('a:P')) { s.P += scoreA; s.J += scoreB; }
+                    });
+
+                    const mCode = (s.E>=s.I?'E':'I')+(s.S>=s.N?'S':'N')+(s.T>=s.F?'T':'F')+(s.J>=s.P?'J':'P');
+                    
+                    this.result = {
+                        mode: 'PRO93',
+                        date: new Date().toLocaleString(),
+                        mbtiCode: mCode,
+                        mbtiDesc: this.mbtiDescriptions[mCode],
+                        rawScores: s,
+                        mbtiPercents: {
+                            E: Math.round(s.E/(s.E+s.I || 1)*100), I: Math.round(s.I/(s.E+s.I || 1)*100),
+                            S: Math.round(s.S/(s.S+s.N || 1)*100), N: Math.round(s.N/(s.S+s.N || 1)*100),
+                            T: Math.round(s.T/(s.T+s.F || 1)*100), F: Math.round(s.F/(s.T+s.F || 1)*100),
+                            J: Math.round(s.J/(s.J+s.P || 1)*100), P: Math.round(s.P/(s.J+s.P || 1)*100)
+                        }
+                    };
+                    this.mode = 'RESULT_93';
+                },
+
+                // ------------------ 全方位版邏輯 ------------------
+                getMbtiColor(qId, type) {
+                    const score = this.answers360.mbti[qId];
+                    if (score === undefined) return 'bg-slate-50 text-slate-400';
+                    if (type === 'A') return score >= 3 ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-400';
+                    return score < 3 ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 text-slate-400';
+                },
+                getAohcProgress() { return this.data360.aohc.filter(row => this.isAohcRowComplete(row.id)).length; },
+                isAohcRowComplete(rid) { 
+                    const r = this.answers360.aohc[rid]; 
+                    return r && Object.keys(r).length === 4; 
+                },
+                handleAohcSelect(rid, type, score) {
+                    let row = this.answers360.aohc[rid] || {};
+                    Object.keys(row).forEach(k => { if(row[k] === score) delete row[k]; });
+                    row[type] = score;
+                    this.answers360.aohc[rid] = {...row};
+                },
+                getAohcBtnClass(rid, type, score) {
+                    const row = this.answers360.aohc[rid] || {};
+                    const selected = row[type] === score;
+                    const taken = Object.values(row).includes(score) && !selected;
+                    if (selected) return 'bg-slate-800 text-white shadow-md scale-110 z-10';
+                    if (taken) return 'bg-slate-100 text-slate-300 cursor-not-allowed';
+                    return 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50';
+                },
+
+                calc360Result() {
+                    // 32題 MBTI
+                    const s = { E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0 };
+                    this.data360.mbti.forEach(q => {
+                        const va = this.answers360.mbti[q.id] || 0;
+                        s[q.dimA] += va; s[q.dimB] += (5-va);
+                    });
+                    const mCode = (s.E>s.I?'E':'I')+(s.S>s.N?'S':'N')+(s.T>s.F?'T':'F')+(s.J>s.P?'J':'P');
+
+                    // 行為特質
+                    let t1 = {a1:0,a2:0,b1:0,b2:0};
+                    Object.values(this.answers360.t1).forEach(v => {
+                        if(v==='A1') t1.a1++; if(v==='A2') t1.a2++;
+                        if(v==='B1') t1.b1++; if(v==='B2') t1.b2++;
+                    });
+                    const t1Open = t1.a1 >= t1.a2; 
+                    const t1Active = t1.b2 >= t1.b1;
+                    let t1Code = t1Open && t1Active ? 'O' : t1Open && !t1Active ? 'H' : !t1Open && t1Active ? 'C' : 'A';
+
+                    // 價值觀 AOHC
+                    let ac = {C:0,O:0,H:0,A:0};
+                    Object.values(this.answers360.aohc).forEach(r => {
+                        ac.C += r.C||0; ac.O += r.O||0; ac.H += r.H||0; ac.A += r.A||0;
+                    });
+                    let maxA = Math.max(ac.C, ac.O, ac.H, ac.A);
+                    let aCode = ac.C===maxA?'C' : ac.O===maxA?'O' : ac.H===maxA?'H' : 'A';
+
+                    const typeMap = { 'C':'掌控型 (Commander)', 'O':'影響型 (Optimist)', 'H':'穩健型 (Harmonizer)', 'A':'分析型 (Analytical)' };
+
+                    this.result = {
+                        mode: 'FULL360',
+                        date: new Date().toLocaleString(),
+                        mbtiCode: mCode,
+                        mbtiDesc: this.mbtiDescriptions[mCode] || "分析中...",
+                        mbtiPercents: {
+                            E: Math.round(s.E/(s.E+s.I)*100)||50, I: Math.round(s.I/(s.E+s.I)*100)||50,
+                            S: Math.round(s.S/(s.S+s.N)*100)||50, N: Math.round(s.N/(s.S+s.N)*100)||50,
+                            T: Math.round(s.T/(s.T+s.F)*100)||50, F: Math.round(s.F/(s.T+s.F)*100)||50,
+                            J: Math.round(s.J/(s.J+s.P)*100)||50, P: Math.round(s.P/(s.J+s.P)*100)||50
+                        },
+                        t1Code: t1Code,
+                        t1Name: typeMap[t1Code],
+                        aohcCode: aCode,
+                        aohcName: typeMap[aCode],
+                        aohcStats: [
+                            {name:'掌控', percent: ac.C/48*100, color:'bg-red-500'},
+                            {name:'影響', percent: ac.O/48*100, color:'bg-amber-500'},
+                            {name:'穩健', percent: ac.H/48*100, color:'bg-emerald-500'},
+                            {name:'分析', percent: ac.A/48*100, color:'bg-blue-500'}
+                        ]
+                    };
+                    this.mode = 'RESULT_360';
+                },
+
+                // ------------------ 通用功能 ------------------
+                saveRecord() {
+                    if(!this.saveName) { alert('請輸入名字'); return; }
+                    const record = { ...this.result, name: this.saveName, id: Date.now() };
+                    this.history.unshift(record);
+                    localStorage.setItem('mbti_universal_history', JSON.stringify(this.history));
+                    alert('已儲存！');
+                    this.mode = 'HOME';
+                    this.saveName = '';
+                    this.step360 = 'INTRO';
+                    this.q93_page = 0;
+                    this.q93_answers = {};
+                    this.answers360 = { mbti: {}, t1: {}, aohc: {} };
+                },
+                
+                deleteRecord(index) {
+                    if(!confirm('確定刪除？')) return;
+                    this.history.splice(index, 1);
+                    localStorage.setItem('mbti_universal_history', JSON.stringify(this.history));
+                },
+
+                loadRecord(record) {
+                    this.result = record;
+                    this.mode = record.mode === 'PRO93' ? 'RESULT_93' : 'RESULT_360';
+                    window.scrollTo({top: 0});
+                },
+
+                downloadImage() {
+                    const el = document.getElementById(this.mode === 'RESULT_93' ? 'result-card-93' : 'result-card-360');
+                    // 顯示名字用於截圖
+                    const tempName = document.createElement('div');
+                    if(this.saveName) {
+                        tempName.innerHTML = `<div class='text-center text-lg font-bold text-gray-700 py-2'>${this.saveName} 的測驗結果</div>`;
+                        el.insertBefore(tempName, el.firstChild);
+                    }
+                    
+                    html2canvas(el, { scale: 2, backgroundColor: "#ffffff", logging: false }).then(canvas => {
+                        if(this.saveName) el.removeChild(tempName); // 移除臨時名字
+                        const link = document.createElement('a');
+                        link.download = `MBTI-${this.result.mbtiCode}-${Date.now()}.png`;
+                        link.href = canvas.toDataURL();
+                        link.click();
+                    });
+                },
+                
+                copyText() {
+                    const r = this.result;
+                    let text = "";
+                    if (r.mode === 'PRO93') {
+                        text = `【MBTI 專業版結果】\n類型：${r.mbtiCode} (${r.mbtiDesc})\nE:${r.mbtiPercents.E}% / I:${r.mbtiPercents.I}%\nS:${r.mbtiPercents.S}% / N:${r.mbtiPercents.N}%\nT:${r.mbtiPercents.T}% / F:${r.mbtiPercents.F}%\nJ:${r.mbtiPercents.J}% / P:${r.mbtiPercents.P}%`;
+                    } else {
+                        text = `【全方位分析結果】\n類型：${r.mbtiCode} (${r.mbtiDesc})\n外顯：${r.t1Name}\n內在：${r.aohcName}`;
+                    }
+                    navigator.clipboard.writeText(text).then(() => alert('已複製摘要！'));
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-700" x-data="app()" x-init="init()">
+
+    <div class="min-h-screen flex flex-col items-center p-4 max-w-4xl mx-auto">
+        
+        <!-- 頂部 Header -->
+        <nav class="w-full flex justify-between items-center mb-6 px-2">
+            <div class="flex items-center gap-2 cursor-pointer" @click="mode='HOME'">
+                <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-lg">
+                    <i data-lucide="brain-circuit" class="w-6 h-6"></i>
+                </div>
+                <span class="font-bold text-lg text-slate-700 hidden sm:block">全方位性格測驗</span>
+            </div>
+            <button @click="mode='HOME'" class="text-sm text-slate-500 hover:text-indigo-600 font-bold" x-show="mode !== 'HOME'">
+                <i data-lucide="home" class="w-4 h-4 inline mr-1"></i> 回首頁
+            </button>
+        </nav>
+
+        <!-- 1. 首頁選單 -->
+        <template x-if="mode === 'HOME'">
+            <div class="w-full space-y-8 fade-enter-active">
+                <div class="text-center space-y-2">
+                    <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900">探索你的內在宇宙</h1>
+                    <p class="text-slate-500">選擇適合您的測驗模式</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                    <!-- 模式 A -->
+                    <div @click="mode='PRO93'; q93_page=0;" class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all cursor-pointer border-2 border-transparent hover:border-indigo-500 group relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-indigo-100 text-indigo-700 px-3 py-1 text-xs font-bold rounded-bl-xl">最準確</div>
+                        <div class="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-600 transition-colors">
+                            <i data-lucide="graduation-cap" class="w-8 h-8 text-indigo-600 group-hover:text-white"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">專業深度版 (93題)</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-4">採用完整的 MBTI 題庫與權重計分系統，提供最細緻的維度分析。適合時間充裕、追求精確結果的使用者。</p>
+                        <span class="text-indigo-600 font-bold text-sm flex items-center">開始測驗 <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i></span>
+                    </div>
+
+                    <!-- 模式 B -->
+                    <div @click="mode='FULL360'; step360='INTRO';" class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all cursor-pointer border-2 border-transparent hover:border-emerald-500 group relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-emerald-100 text-emerald-700 px-3 py-1 text-xs font-bold rounded-bl-xl">多元分析</div>
+                        <div class="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+                            <i data-lucide="layers" class="w-8 h-8 text-emerald-600 group-hover:text-white"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">全方位速測版</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-4">結合精簡版 MBTI (32題)、外顯行為檢測與價值觀分析。適合想一次了解多面向特質的使用者。</p>
+                        <span class="text-emerald-600 font-bold text-sm flex items-center">開始測驗 <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i></span>
+                    </div>
+                </div>
+
+                <!-- 歷史紀錄 -->
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100" x-show="history.length > 0">
+                    <h3 class="font-bold text-slate-700 mb-4 flex items-center border-b pb-2">
+                        <i data-lucide="history" class="w-4 h-4 mr-2"></i> 本機測驗紀錄
+                    </h3>
+                    <div class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                        <template x-for="(rec, index) in history" :key="rec.id">
+                            <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-indigo-50 transition-colors group">
+                                <div @click="loadRecord(rec)" class="cursor-pointer flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-800" x-text="rec.name || '未具名'"></span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-full" :class="rec.mode==='PRO93'?'bg-indigo-100 text-indigo-700':'bg-emerald-100 text-emerald-700'" x-text="rec.mode==='PRO93'?'專業版':'全方位'"></span>
+                                    </div>
+                                    <div class="text-xs text-slate-500 mt-1">
+                                        <span class="font-bold text-slate-700" x-text="rec.mbtiCode"></span> 
+                                        <span x-text="rec.date"></span>
+                                    </div>
+                                </div>
+                                <button @click="deleteRecord(index)" class="text-red-400 hover:text-red-600 p-2 transition-opacity">
+                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- 2. 93題 測驗區 -->
+        <template x-if="mode === 'PRO93'">
+            <div class="w-full max-w-3xl fade-enter-active">
+                <div class="sticky top-0 z-30 bg-slate-50/95 backdrop-blur py-4 mb-4 flex justify-between items-center border-b border-slate-200">
+                    <div>
+                        <span class="text-xs font-bold text-indigo-600 tracking-wider">PROFESSIONAL MBTI</span>
+                        <h2 class="font-bold text-xl text-slate-800">第 <span x-text="q93_page + 1"></span> / <span x-text="total93Pages"></span> 頁</h2>
+                    </div>
+                    <div class="w-1/3 bg-slate-200 rounded-full h-2">
+                        <div class="bg-indigo-600 h-2 rounded-full transition-all duration-500" :style="'width:' + ((q93_page)/(total93Pages)*100) + '%'"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-6 pb-12">
+                    <template x-for="q in current93PageQuestions" :key="q.id">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                            <div class="mb-4 font-bold text-lg text-slate-800">
+                                <span class="text-indigo-500 mr-2" x-text="q.id + '.'"></span> <span x-text="q.text"></span>
+                            </div>
+                            
+                            <!-- 選項區域 -->
+                            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 p-4 rounded-lg">
+                                <!-- A 選項文字 -->
+                                <div class="flex-1 text-center sm:text-left text-sm font-medium text-slate-700 cursor-pointer hover:text-indigo-600" @click="q93_answers[q.id]=1" x-text="q.optA"></div>
+                                
+                                <!-- Radio Buttons (1-5) -->
+                                <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                                    <div class="flex flex-col items-center gap-1 cursor-pointer" @click="q93_answers[q.id]=1">
+                                        <input type="radio" :name="'q'+q.id" :checked="q93_answers[q.id]===1" class="w-6 h-6 sm:w-8 sm:h-8 appearance-none border-2 border-slate-300 rounded-full radio-scale cursor-pointer transition-all">
+                                        <span class="text-[10px] text-slate-400">非常A</span>
+                                    </div>
+                                    <div class="flex flex-col items-center gap-1 cursor-pointer" @click="q93_answers[q.id]=2">
+                                        <input type="radio" :name="'q'+q.id" :checked="q93_answers[q.id]===2" class="w-5 h-5 sm:w-6 sm:h-6 appearance-none border-2 border-slate-300 rounded-full radio-scale cursor-pointer transition-all">
+                                    </div>
+                                    <div class="flex flex-col items-center gap-1 cursor-pointer" @click="q93_answers[q.id]=3">
+                                        <input type="radio" :name="'q'+q.id" :checked="q93_answers[q.id]===3" class="w-4 h-4 sm:w-5 sm:h-5 appearance-none border-2 border-slate-300 rounded-full radio-scale cursor-pointer transition-all">
+                                    </div>
+                                    <div class="flex flex-col items-center gap-1 cursor-pointer" @click="q93_answers[q.id]=4">
+                                        <input type="radio" :name="'q'+q.id" :checked="q93_answers[q.id]===4" class="w-5 h-5 sm:w-6 sm:h-6 appearance-none border-2 border-slate-300 rounded-full radio-scale cursor-pointer transition-all">
+                                    </div>
+                                    <div class="flex flex-col items-center gap-1 cursor-pointer" @click="q93_answers[q.id]=5">
+                                        <input type="radio" :name="'q'+q.id" :checked="q93_answers[q.id]===5" class="w-6 h-6 sm:w-8 sm:h-8 appearance-none border-2 border-slate-300 rounded-full radio-scale cursor-pointer transition-all">
+                                        <span class="text-[10px] text-slate-400">非常B</span>
+                                    </div>
+                                </div>
+
+                                <!-- B 選項文字 -->
+                                <div class="flex-1 text-center sm:text-right text-sm font-medium text-slate-700 cursor-pointer hover:text-indigo-600" @click="q93_answers[q.id]=5" x-text="q.optB"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- 翻頁按鈕 -->
+                <div class="fixed bottom-6 left-0 right-0 px-4 flex justify-center gap-4 z-40 pointer-events-none">
+                    <button @click="prev93Page" x-show="q93_page > 0" class="pointer-events-auto shadow-lg bg-white text-slate-700 px-6 py-3 rounded-full font-bold border border-slate-200 hover:bg-slate-50 transition-all">
+                        上一頁
+                    </button>
+                    <button @click="next93Page" :disabled="!is93PageComplete" class="pointer-events-auto shadow-xl bg-indigo-600 text-white px-8 py-3 rounded-full font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:bg-slate-400 transition-all flex items-center">
+                        <span x-text="q93_page < total93Pages - 1 ? '下一頁' : '查看結果'"></span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                    </button>
+                </div>
+                <!-- 佔位符防止按鈕擋住內容 -->
+                <div class="h-20"></div>
+            </div>
+        </template>
+
+        <!-- 3. 全方位版 測驗區 (復刻原版UI) -->
+        <template x-if="mode === 'FULL360'">
+            <div class="w-full max-w-2xl fade-enter-active">
+                
+                <!-- 介紹頁 -->
+                <div x-show="step360 === 'INTRO'" class="bg-white p-8 rounded-2xl shadow-xl text-center">
+                    <h2 class="text-2xl font-bold mb-4">測驗說明</h2>
+                    <p class="text-slate-500 mb-8">此模式包含三個階段：MBTI傾向(32題)、外顯行為(16題)與人際價值(12題)。請憑直覺回答，這將能更立體地描繪您的性格。</p>
+                    <button @click="step360='MBTI'" class="bg-emerald-600 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-emerald-700 transition-all">開始測驗</button>
+                </div>
+
+                <!-- 階段1: MBTI 32 -->
+                <div x-show="step360 === 'MBTI'" class="space-y-4">
+                    <div class="sticky top-0 z-20 bg-white/95 backdrop-blur p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center">
+                        <span class="font-bold text-slate-500">階段 1/3：心理傾向</span>
+                        <span class="text-emerald-600 font-bold" x-text="Object.keys(answers360.mbti).length + ' / 32'"></span>
+                    </div>
+                    <template x-for="q in data360.mbti" :key="q.id">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <div class="flex justify-between items-center gap-4 text-sm md:text-base font-medium mb-6">
+                                <div class="flex-1 text-center p-3 rounded-lg transition-colors cursor-pointer" :class="getMbtiColor(q.id, 'A')" @click="answers360.mbti[q.id] = 5"><span x-text="q.textA"></span></div>
+                                <div class="text-slate-300 text-xs font-bold">VS</div>
+                                <div class="flex-1 text-center p-3 rounded-lg transition-colors cursor-pointer" :class="getMbtiColor(q.id, 'B')" @click="answers360.mbti[q.id] = 0"><span x-text="q.textB"></span></div>
+                            </div>
+                            <div class="flex justify-between items-center px-4 relative max-w-sm mx-auto">
+                                <div class="absolute top-1/2 left-2 right-2 h-0.5 bg-slate-200 -z-10"></div>
+                                <template x-for="score in [5,4,3,2,1,0]">
+                                    <button @click="answers360.mbti[q.id] = score" class="w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all bg-white z-10" :class="answers360.mbti[q.id] === score ? (score >=3 ? 'bg-indigo-600 border-indigo-600 scale-125' : 'bg-emerald-600 border-emerald-600 scale-125') : 'border-slate-300 hover:border-slate-400'"></button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <div class="py-8 text-center">
+                        <button @click="step360='TABLE1'; window.scrollTo({top:0})" :disabled="Object.keys(answers360.mbti).length < 32" class="bg-emerald-600 text-white px-10 py-3 rounded-full font-bold shadow-xl disabled:bg-slate-300 disabled:cursor-not-allowed">下一步：行為檢測</button>
+                    </div>
+                </div>
+
+                <!-- 階段2: 行為 -->
+                <div x-show="step360 === 'TABLE1'" class="space-y-4">
+                    <div class="bg-white p-4 rounded-xl mb-4 text-center shadow-sm">
+                        <h3 class="font-bold text-lg">階段 2/3：外顯行為</h3>
+                        <p class="text-sm text-slate-500">請選擇最符合您日常行為的描述</p>
+                    </div>
+                    <template x-for="row in data360.t1" :key="row.id">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 grid md:grid-cols-2 gap-4">
+                             <!-- Pair A -->
+                             <div class="bg-slate-50 p-3 rounded-lg">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button @click="answers360.t1[row.id+'_A'] = row.pairA.val1" class="p-2 text-sm rounded border transition-all" :class="answers360.t1[row.id+'_A'] === row.pairA.val1 ? 'bg-purple-600 text-white border-purple-600' : 'bg-white border-slate-200 text-slate-600'"><span x-text="row.pairA.text1"></span></button>
+                                    <button @click="answers360.t1[row.id+'_A'] = row.pairA.val2" class="p-2 text-sm rounded border transition-all" :class="answers360.t1[row.id+'_A'] === row.pairA.val2 ? 'bg-purple-600 text-white border-purple-600' : 'bg-white border-slate-200 text-slate-600'"><span x-text="row.pairA.text2"></span></button>
+                                </div>
+                            </div>
+                            <!-- Pair B -->
+                            <div class="bg-slate-50 p-3 rounded-lg">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button @click="answers360.t1[row.id+'_B'] = row.pairB.val1" class="p-2 text-sm rounded border transition-all" :class="answers360.t1[row.id+'_B'] === row.pairB.val1 ? 'bg-purple-600 text-white border-purple-600' : 'bg-white border-slate-200 text-slate-600'"><span x-text="row.pairB.text1"></span></button>
+                                    <button @click="answers360.t1[row.id+'_B'] = row.pairB.val2" class="p-2 text-sm rounded border transition-all" :class="answers360.t1[row.id+'_B'] === row.pairB.val2 ? 'bg-purple-600 text-white border-purple-600' : 'bg-white border-slate-200 text-slate-600'"><span x-text="row.pairB.text2"></span></button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <div class="py-8 text-center">
+                        <button @click="step360='AOHC'; window.scrollTo({top:0})" :disabled="Object.keys(answers360.t1).length < 16" class="bg-purple-600 text-white px-10 py-3 rounded-full font-bold shadow-xl disabled:bg-slate-300 disabled:cursor-not-allowed">下一步：人際價值</button>
+                    </div>
+                </div>
+
+                <!-- 階段3: AOHC -->
+                <div x-show="step360 === 'AOHC'" class="space-y-4">
+                    <div class="bg-white p-6 rounded-xl mb-4 shadow-sm">
+                        <h3 class="font-bold text-lg text-center mb-2">階段 3/3：人際價值觀</h3>
+                        <p class="text-sm text-slate-500 text-center mb-4">請將 4, 3, 2, 1 分別填入每行，<span class="text-red-500 font-bold">分數不可重複</span>。<br>(4:最像, 1:最不像)</p>
+                    </div>
+                    <div class="sticky top-0 z-20 bg-white/95 backdrop-blur p-2 mb-2 rounded border border-slate-100 flex justify-end">
+                        <span class="text-sm font-bold text-green-600" x-text="getAohcProgress() + ' / 12 完成'"></span>
+                    </div>
+                    <template x-for="row in data360.aohc" :key="row.id">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border transition-colors" :class="isAohcRowComplete(row.id) ? 'border-green-400 bg-green-50' : 'border-slate-100'">
+                            <div class="text-xs text-slate-400 font-bold mb-2">第 <span x-text="row.id"></span> 組</div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <template x-for="word in row.words" :key="word.type">
+                                    <div class="flex flex-col items-center bg-white/50 p-2 rounded">
+                                        <div class="font-bold text-slate-700 mb-2 text-sm" x-text="word.text"></div>
+                                        <div class="flex gap-1">
+                                            <template x-for="s in [4,3,2,1]">
+                                                <button @click="handleAohcSelect(row.id, word.type, s)" class="w-6 h-7 rounded text-xs font-bold transition-all border" :class="getAohcBtnClass(row.id, word.type, s)"><span x-text="s"></span></button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <div class="py-8 text-center">
+                        <button @click="calc360Result();" :disabled="getAohcProgress() < 12" class="bg-slate-900 text-white px-12 py-4 rounded-full font-bold shadow-xl disabled:bg-slate-300 disabled:cursor-not-allowed">查看分析結果</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- 4. 93題結果頁 -->
+        <template x-if="mode === 'RESULT_93'">
+            <div class="w-full max-w-2xl fade-enter-active space-y-6">
+                <div id="result-card-93" class="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
+                    <div class="bg-gradient-to-br from-indigo-600 to-blue-700 text-white p-10 text-center relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                        <div class="relative z-10">
+                            <div class="inline-block px-3 py-1 bg-white/20 rounded-full text-xs font-bold mb-4 backdrop-blur">專業版測驗結果</div>
+                            <h2 class="text-6xl font-extrabold mb-2 tracking-tighter" x-text="result.mbtiCode"></h2>
+                            <p class="text-2xl font-medium opacity-90" x-text="result.mbtiDesc"></p>
+                            <p class="text-sm mt-4 opacity-75" x-text="result.date"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="p-8 space-y-6">
+                        <div class="grid grid-cols-1 gap-6">
+                            <!-- E/I -->
+                            <div class="space-y-2">
+                                <div class="flex justify-between font-bold text-sm text-slate-600">
+                                    <span>外向 (E) <span x-text="result.mbtiPercents.E+'%'"></span></span>
+                                    <span>內向 (I) <span x-text="result.mbtiPercents.I+'%'"></span></span>
+                                </div>
+                                <div class="h-3 bg-slate-100 rounded-full overflow-hidden flex">
+                                    <div class="h-full bg-indigo-500" :style="'width:' + result.mbtiPercents.E + '%'"></div>
+                                    <div class="h-full bg-slate-300" :style="'width:' + result.mbtiPercents.I + '%'"></div>
+                                </div>
+                            </div>
+                            <!-- S/N -->
+                            <div class="space-y-2">
+                                <div class="flex justify-between font-bold text-sm text-slate-600">
+                                    <span>實感 (S) <span x-text="result.mbtiPercents.S+'%'"></span></span>
+                                    <span>直覺 (N) <span x-text="result.mbtiPercents.N+'%'"></span></span>
+                                </div>
+                                <div class="h-3 bg-slate-100 rounded-full overflow-hidden flex">
+                                    <div class="h-full bg-blue-500" :style="'width:' + result.mbtiPercents.S + '%'"></div>
+                                    <div class="h-full bg-slate-300" :style="'width:' + result.mbtiPercents.N + '%'"></div>
+                                </div>
+                            </div>
+                            <!-- T/F -->
+                            <div class="space-y-2">
+                                <div class="flex justify-between font-bold text-sm text-slate-600">
+                                    <span>思考 (T) <span x-text="result.mbtiPercents.T+'%'"></span></span>
+                                    <span>情感 (F) <span x-text="result.mbtiPercents.F+'%'"></span></span>
+                                </div>
+                                <div class="h-3 bg-slate-100 rounded-full overflow-hidden flex">
+                                    <div class="h-full bg-cyan-500" :style="'width:' + result.mbtiPercents.T + '%'"></div>
+                                    <div class="h-full bg-slate-300" :style="'width:' + result.mbtiPercents.F + '%'"></div>
+                                </div>
+                            </div>
+                            <!-- J/P -->
+                            <div class="space-y-2">
+                                <div class="flex justify-between font-bold text-sm text-slate-600">
+                                    <span>判斷 (J) <span x-text="result.mbtiPercents.J+'%'"></span></span>
+                                    <span>感知 (P) <span x-text="result.mbtiPercents.P+'%'"></span></span>
+                                </div>
+                                <div class="h-3 bg-slate-100 rounded-full overflow-hidden flex">
+                                    <div class="h-full bg-teal-500" :style="'width:' + result.mbtiPercents.J + '%'"></div>
+                                    <div class="h-full bg-slate-300" :style="'width:' + result.mbtiPercents.P + '%'"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-indigo-50 p-4 rounded-xl text-sm text-indigo-900 leading-relaxed">
+                            <strong>分析提示：</strong> 分數越靠近中間 (50%) 代表您在該維度上具有彈性，或根據環境切換；分數越極端代表該特質越明顯。
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 底部操作欄 (共用) -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 border border-slate-100 space-y-4">
+                     <div class="flex flex-col md:flex-row gap-3 items-end md:items-center pb-4 border-b border-slate-100">
+                        <div class="flex-1 w-full">
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">輸入名字以儲存紀錄</label>
+                            <input type="text" x-model="saveName" placeholder="例如：Alex" class="w-full p-2 border rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-indigo-500 focus:outline-none transition-colors">
+                        </div>
+                        <button @click="saveRecord" class="w-full md:w-auto bg-slate-900 text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-black flex justify-center items-center">
+                            <i data-lucide="save" class="w-4 h-4 mr-2"></i> 儲存
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button @click="downloadImage" class="bg-slate-100 text-slate-700 px-4 py-3 rounded-lg font-bold text-sm hover:bg-slate-200 flex justify-center items-center">
+                            <i data-lucide="image" class="w-4 h-4 mr-2"></i> 圖片
+                        </button>
+                        <button @click="copyText" class="bg-slate-100 text-slate-700 px-4 py-3 rounded-lg font-bold text-sm hover:bg-slate-200 flex justify-center items-center">
+                            <i data-lucide="copy" class="w-4 h-4 mr-2"></i> 摘要
+                        </button>
+                    </div>
+                     <a :href="'https://www.16personalities.com/ch/'+result.mbtiCode+'-personality'" target="_blank" class="block w-full text-center py-3 rounded-lg border border-indigo-200 text-indigo-600 font-bold hover:bg-indigo-50 transition-colors">
+                        <i data-lucide="globe" class="w-4 h-4 inline mr-1"></i> 查看此類型的詳細解析
+                    </a>
+                </div>
+            </div>
+        </template>
+
+        <!-- 5. 全方位結果頁 -->
+        <template x-if="mode === 'RESULT_360'">
+             <div class="w-full max-w-2xl fade-enter-active space-y-6">
+                <div id="result-card-360" class="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
+                    <div class="bg-slate-900 text-white p-10 text-center relative">
+                         <div class="inline-block px-3 py-1 bg-white/20 rounded-full text-xs font-bold mb-4 backdrop-blur">全方位分析結果</div>
+                        <div class="text-5xl font-extrabold mb-4">
+                            <span x-text="result.mbtiCode"></span>
+                            <span class="text-3xl text-yellow-400" x-text="' + ' + result.aohcCode"></span>
+                        </div>
+                        <div class="inline-block px-4 py-2 bg-white/10 rounded-lg text-sm md:text-base border border-white/20">
+                            外顯: <span x-text="result.t1Name"></span> 
+                            <span x-text="result.t1Code === result.aohcCode ? '=' : '≠'" class="mx-1 font-bold text-yellow-400"></span> 
+                            內在: <span x-text="result.aohcName"></span>
+                        </div>
+                         <p class="text-xs mt-4 opacity-50" x-text="result.date"></p>
+                    </div>
+                    
+                    <div class="p-8">
+                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm mb-6">
+                            <p class="mb-2">您的 MBTI 傾向為 <strong><span x-text="result.mbtiDesc"></span></strong>。</p>
+                            <p class="mb-2">行為模式呈現 <strong><span x-text="result.t1Name"></span></strong>。</p>
+                            <p>深層價值觀為 <strong><span x-text="result.aohcName"></span></strong>。</p>
+                            <p x-show="result.t1Code !== result.aohcCode" class="mt-2 text-orange-600 font-bold text-xs bg-orange-50 p-2 rounded border border-orange-100">
+                                <i data-lucide="alert-circle" class="w-3 h-3 inline mr-1"></i> 注意：您的外顯行為與內在價值不一致，這可能代表您正在適應目前的環境壓力，或正在扮演某個角色。
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- 完整版 MBTI Chart (與專業版一致) -->
+                            <div>
+                                <h4 class="font-bold text-slate-400 text-xs tracking-widest uppercase mb-4">MBTI 分佈</h4>
+                                <div class="space-y-4">
+                                    <!-- E/I -->
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between font-bold text-xs text-slate-600">
+                                            <span>外向 (E) <span x-text="result.mbtiPercents.E+'%'"></span></span>
+                                            <span>內向 (I) <span x-text="result.mbtiPercents.I+'%'"></span></span>
+                                        </div>
+                                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                                            <div class="h-full bg-indigo-500" :style="'width:' + result.mbtiPercents.E + '%'"></div>
+                                            <div class="h-full bg-slate-300" :style="'width:' + result.mbtiPercents.I + '%'"></div>
+                                        </div>
+                                    </div>
+                                    <!-- S/N -->
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between font-bold text-xs text-slate-600">
+                                            <span>實感 (S) <span x-text="result.mbtiPercents.S+'%'"></span></span>
+                                            <span>直覺 (N) <span x-text="result.mbtiPercents.N+'%'"></span></span>
+                                        </div>
+                                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                                            <div class="h-full bg-blue-500" :style="'width:' + result.mbtiPercents.S + '%'"></div>
+                                            <div class="h-full bg-slate-300" :style="'width:' + result.mbtiPercents.N + '%'"></div>
+                                        </div>
+                                    </div>
+                                    <!-- T/F -->
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between font-bold text-xs text-slate-600">
+                                            <span>思考 (T) <span x-text="result.mbtiPercents.T+'%'"></span></span>
+                                            <span>情感 (F) <span x-text="result.mbtiPercents.F+'%'"></span></span>
+                                        </div>
+                                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                                            <div class="h-full bg-cyan-500" :style="'width:' + result.mbtiPercents.T + '%'"></div>
+                                            <div class="h-full bg-slate-300" :style="'width:' + result.mbtiPercents.F + '%'"></div>
+                                        </div>
+                                    </div>
+                                    <!-- J/P -->
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between font-bold text-xs text-slate-600">
+                                            <span>判斷 (J) <span x-text="result.mbtiPercents.J+'%'"></span></span>
+                                            <span>感知 (P) <span x-text="result.mbtiPercents.P+'%'"></span></span>
+                                        </div>
+                                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                                            <div class="h-full bg-teal-500" :style="'width:' + result.mbtiPercents.J + '%'"></div>
+                                            <div class="h-full bg-slate-300" :style="'width:' + result.mbtiPercents.P + '%'"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- DISC Chart -->
+                            <div>
+                                <h4 class="font-bold text-slate-400 text-xs tracking-widest uppercase mb-4">價值觀分佈</h4>
+                                <div class="space-y-3">
+                                    <template x-for="type in result.aohcStats">
+                                        <div>
+                                            <div class="flex justify-between text-xs mb-1 font-medium">
+                                                <span x-text="type.name"></span>
+                                                <span x-text="Math.round(type.percent) + '%'"></span>
+                                            </div>
+                                            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                                <div class="h-full" :class="type.color" :style="'width:' + type.percent + '%'"></div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部操作欄 (與上面相同，程式碼複用性略低但為了模板清晰分開寫) -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 border border-slate-100 space-y-4">
+                     <div class="flex flex-col md:flex-row gap-3 items-end md:items-center pb-4 border-b border-slate-100">
+                        <div class="flex-1 w-full">
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">輸入名字以儲存紀錄</label>
+                            <input type="text" x-model="saveName" placeholder="例如：Alex" class="w-full p-2 border rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-emerald-500 focus:outline-none transition-colors">
+                        </div>
+                        <button @click="saveRecord" class="w-full md:w-auto bg-slate-900 text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-black flex justify-center items-center">
+                            <i data-lucide="save" class="w-4 h-4 mr-2"></i> 儲存
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button @click="downloadImage" class="bg-slate-100 text-slate-700 px-4 py-3 rounded-lg font-bold text-sm hover:bg-slate-200 flex justify-center items-center">
+                            <i data-lucide="image" class="w-4 h-4 mr-2"></i> 圖片
+                        </button>
+                        <button @click="copyText" class="bg-slate-100 text-slate-700 px-4 py-3 rounded-lg font-bold text-sm hover:bg-slate-200 flex justify-center items-center">
+                            <i data-lucide="copy" class="w-4 h-4 mr-2"></i> 摘要
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+    </div>
+</body>
+</html>
