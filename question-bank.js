@@ -1,10 +1,9 @@
 /* question-bank.js
- * 題庫資料集中管理：93 題 + 360 題庫
- * - 不用 fetch，file:// 也能跑
- * - Alpine app 直接讀 window.QUESTION_BANK
+ * 題庫資料集中管理：93 題 + 360 題庫 + 靜態描述文字
+ * 優化重點：將所有「文字內容」從 HTML 邏輯中抽離，實現真正的資料分離。
  */
 (function () {
-  // --- 93 題 原始資料（完整搬出 HTML） ---
+  // --- 93 題 原始資料 ---
   const raw93Questions = `
 1	當我某天想去一個地方時，我通常會：a.去之前先想好該做的事；b.去了再說	a:J,b:P
 2	我覺得自己更傾向於是一個：a.隨遇而安的人；b.做事遵循計畫的人	a:P,b:J
@@ -200,12 +199,31 @@
     { id: 12, words: [{type:'C', text:'獨立的'}, {type:'O', text:'狂熱的'}, {type:'H', text:'好傾聽者'}, {type:'A', text:'高標準'}] }
   ];
 
+  // --- 靜態描述資料 (從 HTML 移入) ---
+  const mbtiDescriptions = {
+    "INTJ": "完美主義 (建築師)", "INTP": "熱愛知識 (邏輯學家)", "ENTJ": "天生領導 (指揮官)", "ENTP": "智力挑戰 (辯論家)",
+    "INFJ": "神秘激勵 (提倡者)", "INFP": "詩意善良 (調停者)", "ENFJ": "魅力領導 (主人公)", "ENFP": "熱情創造 (競選者)",
+    "ISTJ": "可靠實際 (物流師)", "ISFJ": "溫暖負責 (守衛者)", "ESTJ": "高效管理 (總經理)", "ESFJ": "熱心助人 (執政官)",
+    "ISTP": "大膽實作 (鑑賞家)", "ISFP": "靈活藝術 (探險家)", "ESTP": "精力充沛 (企業家)", "ESFP": "熱情自發 (表演者)"
+  };
+
+  const mbtiLabels = {
+    'E': 'E (外向)', 'I': 'I (內向)',
+    'S': 'S (感覺)', 'N': 'N (直覺)',
+    'T': 'T (思考)', 'F': 'F (情感)',
+    'J': 'J (判斷)', 'P': 'P (感知)'
+  };
+
   window.QUESTION_BANK = {
     q93: parse93(raw93Questions),
     q360: {
       mbti: data360_mbti,
       t1: data360_t1,
       aohc: data360_aohc
+    },
+    meta: {
+      descriptions: mbtiDescriptions,
+      labels: mbtiLabels
     }
   };
 })();
