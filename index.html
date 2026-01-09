@@ -1,10 +1,9 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>全方位性格測驗V1.0</title>
+  <title>全方位性格測驗V1.1</title>
 
   <!-- 核心庫 -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -12,7 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-  <!-- ✅ 題庫外掛（請確保同資料夾有 question-bank.js） -->
+  <!-- ✅ 題庫外掛 -->
   <script src="./question-bank.js"></script>
 
   <style>
@@ -61,27 +60,18 @@
 
         answers360: { mbti: {}, t1: {}, aohc: {} },
 
-        // ✅ 題庫改由外部檔案提供
+        // ✅ 題庫資料
         data360_mbti: QB?.q360?.mbti ?? [],
         data360_t1: QB?.q360?.t1 ?? [],
         data360_aohc: QB?.q360?.aohc ?? [],
+        
+        // ✅ 靜態描述資料 (從 HTML 中移除，改讀取 QB)
+        mbtiDescriptions: QB?.meta?.descriptions ?? {},
+        mbtiLabels: QB?.meta?.labels ?? {},
 
         result: {},
         history: [],
         saveName: '',
-
-        mbtiDescriptions: {
-          "INTJ": "完美主義 (建築師)", "INTP": "熱愛知識 (邏輯學家)", "ENTJ": "天生領導 (指揮官)", "ENTP": "智力挑戰 (辯論家)",
-          "INFJ": "神秘激勵 (提倡者)", "INFP": "詩意善良 (調停者)", "ENFJ": "魅力領導 (主人公)", "ENFP": "熱情創造 (競選者)",
-          "ISTJ": "可靠實際 (物流師)", "ISFJ": "溫暖負責 (守衛者)", "ESTJ": "高效管理 (總經理)", "ESFJ": "熱心助人 (執政官)",
-          "ISTP": "大膽實作 (鑑賞家)", "ISFP": "靈活藝術 (探險家)", "ESTP": "精力充沛 (企業家)", "ESFP": "熱情自發 (表演者)"
-        },
-        mbtiLabels: {
-          'E': 'E (外向)', 'I': 'I (內向)',
-          'S': 'S (感覺)', 'N': 'N (直覺)',
-          'T': 'T (思考)', 'F': 'F (情感)',
-          'J': 'J (判斷)', 'P': 'P (感知)'
-        },
 
         refreshIcons() {
           if (typeof lucide === 'undefined') return;
@@ -90,26 +80,29 @@
 
         init() {
           if (!QB) console.error("QUESTION_BANK not loaded. Check question-bank.js path.");
+          
+          // 模擬載入時間 (如果資料量大，這裡會很有感)
           setTimeout(() => {
             this.isLoading = false;
             this.loadHistory();
             this.refreshIcons();
 
-            // ✅ UI切換後重畫 icon（不然 x-if 新插入的 icon 會空白）
+            // ✅ 監聽變數變化，確保 icon 不會因為 DOM 更新而消失
             this.$watch('mode', () => this.refreshIcons());
             this.$watch('step360', () => this.refreshIcons());
           }, 300);
         },
 
         loadHistory() {
-          const saved = localStorage.getItem('mbti_universal_history');
-          if (saved) this.history = JSON.parse(saved);
+          try {
+            const saved = localStorage.getItem('mbti_universal_history');
+            if (saved) this.history = JSON.parse(saved);
+          } catch (e) {
+            console.warn("無法讀取歷史紀錄:", e);
+          }
         },
 
         // ------------------ 93題版邏輯 ------------------
-        // 93題: 6分制 (1~6)
-        // 1:非常同意A (3分), 2:同意A (2分), 3:有點同意A (1分)
-        // 4:有點同意B (1分), 5:同意B (2分), 6:非常同意B (3分)
         select93Option(val) {
           this.q93_answers[this.q93_list[this.q93_index].id] = val;
           setTimeout(() => {
@@ -149,8 +142,6 @@
         },
 
         // ------------------ 全方位版邏輯 ------------------
-
-        // MBTI 32題 (6分制)
         select360Mbti(score) {
           this.answers360.mbti[this.data360_mbti[this.index360_mbti].id] = score;
           setTimeout(() => {
@@ -168,7 +159,6 @@
           }, 250);
         },
 
-        // 行為 16題 (二選一)
         select360T1(val) {
           this.answers360.t1[this.data360_t1[this.index360_t1].id] = val;
           setTimeout(() => {
@@ -186,16 +176,15 @@
           }, 250);
         },
 
-        // 價值觀 12題 (點擊排序)
         get currentAohcRow() { return this.answers360.aohc[this.data360_aohc[this.index360_aohc].id] || {}; },
         get currentAohcCount() { return Object.keys(this.currentAohcRow).length; },
 
         select360Aohc(type) {
           const rowId = this.data360_aohc[this.index360_aohc].id;
           let row = this.answers360.aohc[rowId] || {};
-          if (row[type]) return; // 已選過
+          if (row[type]) return; 
 
-          const nextScore = 4 - Object.keys(row).length; // 4,3,2,1
+          const nextScore = 4 - Object.keys(row).length; 
           row[type] = nextScore;
           this.answers360.aohc[rowId] = { ...row };
 
@@ -221,7 +210,7 @@
         },
 
         calc360Result() {
-          // MBTI (6分制)
+          // MBTI
           let s = { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 };
           this.data360_mbti.forEach(q => {
             const val = this.answers360.mbti[q.id] || 0;
@@ -286,8 +275,6 @@
               T: Math.round(scores.T/total.T*100) || 50, F: Math.round(scores.F/total.T*100) || 50,
               J: Math.round(scores.J/total.J*100) || 50, P: Math.round(scores.P/total.J*100) || 50
             },
-
-            // Extras for 360
             t1Name: extras.t1Code ? typeMap[extras.t1Code] : '',
             t1Code: extras.t1Code,
             aohcName: extras.aCode ? typeMap[extras.aCode] : '',
@@ -306,33 +293,34 @@
         // 通用功能
         saveRecord() {
           if (!this.saveName) return alert('請輸入名字');
-          this.history.unshift({ ...this.result, name: this.saveName, id: Date.now() });
-          localStorage.setItem('mbti_universal_history', JSON.stringify(this.history));
-          alert('已儲存！');
-          this.mode = 'HOME';
-          this.saveName = '';
-
-          this.q93_index = 0;
-          this.q93_answers = {};
-
-          this.index360_mbti = 0;
-          this.index360_t1 = 0;
-          this.index360_aohc = 0;
-          this.answers360 = { mbti:{}, t1:{}, aohc:{} };
-          this.step360 = 'INTRO';
+          try {
+            this.history.unshift({ ...this.result, name: this.saveName, id: Date.now() });
+            localStorage.setItem('mbti_universal_history', JSON.stringify(this.history));
+            alert('已儲存！');
+            this.mode = 'HOME';
+            this.saveName = '';
+            
+            // 重置狀態
+            this.q93_index = 0;
+            this.q93_answers = {};
+            this.index360_mbti = 0;
+            this.index360_t1 = 0;
+            this.index360_aohc = 0;
+            this.answers360 = { mbti:{}, t1:{}, aohc:{} };
+            this.step360 = 'INTRO';
+          } catch (e) {
+            alert("儲存失敗：可能因為瀏覽器隱私設定或空間不足。");
+            console.error(e);
+          }
         },
 
         deleteRecord(idx) {
           if (confirm('刪除?')) {
-            this.history.splice(idx, 1);
-            localStorage.setItem('mbti_universal_history', JSON.stringify(this.history));
+            try {
+              this.history.splice(idx, 1);
+              localStorage.setItem('mbti_universal_history', JSON.stringify(this.history));
+            } catch(e) { console.error(e); }
           }
-        },
-
-        loadRecord(rec) {
-          this.result = rec;
-          this.mode = rec.mode === 'PRO93' ? 'RESULT_93' : 'RESULT_360';
-          window.scrollTo({ top: 0 });
         },
 
         downloadImage() {
