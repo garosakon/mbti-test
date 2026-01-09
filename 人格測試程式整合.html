@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全方位性格測驗V0.2</title>
+    <title>全方位性格測驗V0.3</title>
     
     <!-- 核心庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -229,6 +229,12 @@
                     "INFJ": "神秘激勵 (提倡者)", "INFP": "詩意善良 (調停者)", "ENFJ": "魅力領導 (主人公)", "ENFP": "熱情創造 (競選者)",
                     "ISTJ": "可靠實際 (物流師)", "ISFJ": "溫暖負責 (守衛者)", "ESTJ": "高效管理 (總經理)", "ESFJ": "熱心助人 (執政官)",
                     "ISTP": "大膽實作 (鑑賞家)", "ISFP": "靈活藝術 (探險家)", "ESTP": "精力充沛 (企業家)", "ESFP": "熱情自發 (表演者)"
+                },
+                mbtiLabels: {
+                    'E': 'E (外向)', 'I': 'I (內向)',
+                    'S': 'S (感覺)', 'N': 'N (直覺)',
+                    'T': 'T (思考)', 'F': 'F (情感)',
+                    'J': 'J (判斷)', 'P': 'P (感知)'
                 },
                 
                 init() {
@@ -711,8 +717,8 @@
                          <template x-for="dim in ['E-I','S-N','T-F','J-P']">
                             <div>
                                 <div class="flex justify-between text-xs font-bold text-slate-500 mb-1">
-                                    <span x-text="dim.split('-')[0] + ' ' + result.mbtiPercents[dim.split('-')[0]] + '%'"></span>
-                                    <span x-text="dim.split('-')[1] + ' ' + result.mbtiPercents[dim.split('-')[1]] + '%'"></span>
+                                    <span x-text="mbtiLabels[dim.split('-')[0]] + ' ' + result.mbtiPercents[dim.split('-')[0]] + '%'"></span>
+                                    <span x-text="mbtiLabels[dim.split('-')[1]] + ' ' + result.mbtiPercents[dim.split('-')[1]] + '%'"></span>
                                 </div>
                                 <div class="h-2 bg-slate-100 rounded-full overflow-hidden flex">
                                     <div class="bg-indigo-500 h-full" :style="'width:'+result.mbtiPercents[dim.split('-')[0]]+'%'"></div>
@@ -744,7 +750,7 @@
                                         <div class="bg-indigo-600 h-full" :style="'width:'+result.mbtiPercents[dim.split('-')[0]]+'%'"></div>
                                     </div>
                                     <div class="flex justify-between text-[10px] text-slate-400 mt-1">
-                                        <span x-text="dim.split('-')[0]"></span><span x-text="dim.split('-')[1]"></span>
+                                        <span x-text="mbtiLabels[dim.split('-')[0]]"></span><span x-text="mbtiLabels[dim.split('-')[1]]"></span>
                                     </div>
                                 </div>
                             </template>
