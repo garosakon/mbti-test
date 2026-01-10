@@ -36,7 +36,7 @@
     </div>
 
     <script>
-        // --- 1. 完整資料區 (Data) - 70題全數校對 ---
+        // --- 1. 完整資料區 (Data) - 已修正 Q66-Q70 的鍵值錯誤 ---
 
         const MBTI_QUESTIONS = [
             { id: 1, text: "At a party do you:", text_tw: "在同樂會或大家一起玩的時候，你會：", a: "Interact with many, including strangers", a_tw: "跟很多人一起玩，就算是不認識的小朋友也沒關係", b: "Interact with a few, known to you", b_tw: "只跟幾個比較好的好朋友窩在一起" },
@@ -84,7 +84,7 @@
             { id: 43, text: "Do you prefer:", text_tw: "你比較喜歡：", a: "many friends with brief contact", a_tw: "有很多朋友，但都只聊一點點", b: "a few friends with more lengthy contact", b_tw: "只有幾個朋友，但可以聊很久" },
             { id: 44, text: "Do you go more by:", text_tw: "你做事比較依照：", a: "facts", a_tw: "事實 (看到的證據)", b: "principles", b_tw: "原則 (心裡的想法)" },
             { id: 45, text: "Are you more interested in:", text_tw: "你對什麼比較有興趣：", a: "production and distribution", a_tw: "怎麼做東西、怎麼賣東西", b: "design and research", b_tw: "怎麼設計新東西、發明新東西" },
-            { id: 46, text: "Which is more of a compliment:", text_tw: "哪一句話比較像在誇獎人：", a: "\"There is a very logical person.\"", a_tw: "「他是一個很聰明、有條理的人」", b: "\"There is a very sentimental person.\"", b_tw: "「他是一個很重感情、很善良的人」" },
+            { id: 46, text: "Which is more of a compliment:", text_tw: "哪句更像是讚美：", a: "\"There is a very logical person.\"", a_tw: "「他是一個很聰明、有條理的人」", b: "\"There is a very sentimental person.\"", b_tw: "「他是一個很重感情、很善良的人」" },
             { id: 47, text: "Do you value in yourself more that you are:", text_tw: "你覺得自己哪一點比較棒：", a: "unwavering", a_tw: "立場堅定，不會動搖", b: "devoted", b_tw: "全心全意對人好" },
             { id: 48, text: "Do you more often prefer the:", text_tw: "你比較喜歡：", a: "final and unalterable statement", a_tw: "講得肯定的話 (一定是這樣)", b: "tentative and preliminary statement", b_tw: "講得保留的話 (可能是這樣)" },
             { id: 49, text: "Are you more comfortable:", text_tw: "你什麼時候覺得比較輕鬆：", a: "after a decision", a_tw: "做完決定的時候", b: "before a decision", b_tw: "還在想辦法的時候" },
@@ -105,7 +105,7 @@
             { id: 64, text: "Are you more inclined to be:", text_tw: "你覺得自己：", a: "easy to approach", a_tw: "很好相處、容易親近", b: "somewhat reserved", b_tw: "比較害羞、話比較少" },
             { id: 65, text: "In writings do you prefer:", text_tw: "看故事書的時候，你喜歡：", a: "the more literal", a_tw: "寫得很清楚、很真實的", b: "the more figurative", b_tw: "寫得很美、很有想像空間的" },
             { id: 66, text: "Is it harder for you to:", text_tw: "對你來說哪個比較難：", a: "identify with others", a_tw: "體會別人的心情", b: "utilize others", b_tw: "叫別人幫你做事" },
-            { id: 67, text: "Which do you wish more for yourself:", text_tw: "你希望自己擁有更多：", a: "clarity of reason", a_tw: "清楚的頭腦", b: "strength of compassion", a_tw: "幫助別人的愛心" },
+            { id: 67, text: "Which do you wish more for yourself:", text_tw: "你希望自己擁有更多：", a: "clarity of reason", a_tw: "清楚的頭腦", b: "strength of compassion", b_tw: "幫助別人的愛心" },
             { id: 68, text: "Which is the greater fault:", text_tw: "哪個缺點比較糟糕：", a: "being indiscriminate", a_tw: "搞不清楚狀況", b: "being critical", b_tw: "愛批評別人" },
             { id: 69, text: "Do you prefer the:", text_tw: "你比較喜歡：", a: "planned event", a_tw: "計畫好的活動", b: "unplanned event", b_tw: "突然想到的活動" },
             { id: 70, text: "Do you tend to be more:", text_tw: "你通常比較：", a: "deliberate than spontaneous", a_tw: "想好再做", b: "spontaneous than deliberate", b_tw: "想到就做" }
@@ -171,8 +171,7 @@
             try {
                 const saved = localStorage.getItem('mbti_history');
                 if (saved) {
-                    const parsed = JSON.parse(saved);
-                    state.history = Array.isArray(parsed) ? parsed : [];
+                    state.history = JSON.parse(saved);
                 }
             } catch (e) {
                 console.error("讀取紀錄失敗", e);
@@ -259,20 +258,13 @@
         }
 
         function finishTest() {
-            try {
-                const scores = calculateResult();
-                const type = getResultType(scores);
-                const record = saveRecord(type, scores);
-                state.currentResult = record;
-                state.view = 'result';
-            } catch(e) {
-                console.error(e);
-                alert('計算結果時發生錯誤');
-                state.view = 'home';
-            } finally {
-                state.isTransitioning = false;
-                render();
-            }
+            const scores = calculateResult();
+            const type = getResultType(scores);
+            const record = saveRecord(type, scores);
+            state.currentResult = record;
+            state.view = 'result';
+            state.isTransitioning = false;
+            render();
         }
 
         function calculateResult() {
@@ -598,6 +590,8 @@
                 listHtml = '<div class="space-y-4">';
                 state.history.forEach(record => {
                     const typeTitle = (TypeDescription[record.type] || "").split(' - ')[0];
+                    // 為了傳遞 record 到 viewHistoryRecord，我們將其存入全域變數或用 ID 查找
+                    // 這裡簡單做法：用 onclick 觸發一個函數，傳入 ID
                     listHtml += `
                         <div class="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition border border-gray-100 flex items-center justify-between group">
                             <div class="flex-1 cursor-pointer" onclick="openHistoryRecord(${record.id})">
@@ -644,6 +638,7 @@
             `;
         }
 
+        // 輔助函數：透過 ID 開啟歷史紀錄
         window.openHistoryRecord = function(id) {
             const record = state.history.find(r => r.id === id);
             if (record) {
