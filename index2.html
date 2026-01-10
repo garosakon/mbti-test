@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI 人格特質測驗v1.0</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        .fade-in-up { animation: fadeInUp 0.5s ease-out; }
+        .slide-in-right { animation: slideInRight 0.3s ease-out; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        .progress-bar { transition: width 0.3s ease-out; }
+        
+        /* 選項按鈕樣式 */
+        .option-btn { transition: all 0.2s; }
+        .option-btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="bg-slate-50 text-gray-800 selection:bg-indigo-100 selection:text-indigo-700">
+
+    <div id="app" class="min-h-screen relative overflow-hidden"></div>
+
+    <script>
+        // --- 1. 資料區 ---
+        const MBTI_QUESTIONS = [
+            { id: 1, text_tw: "在派對或社交聚會上，你通常會：", a_tw: "跟很多人互動，包括陌生人", b_tw: "只跟幾個認識的朋友互動" },
+            { id: 2, text_tw: "你覺得自己比較偏向：", a_tw: "務實、講求實際", b_tw: "充滿想像、喜歡推測" },
+            { id: 3, text_tw: "哪種情況你覺得比較糟糕：", a_tw: "好高騖遠 (不切實際)", b_tw: "墨守成規 (一成不變)" },
+            { id: 4, text_tw: "你比較欣賞哪種特質：", a_tw: "講原則、有條理", b_tw: "重感情、有人情味" },
+            { id: 5, text_tw: "你比較容易被什麼吸引：", a_tw: "有說服力的論點", b_tw: "感人的故事或氛圍" },
+            { id: 6, text_tw: "工作的時候，你習慣：", a_tw: "設定期限，按部就班完成", b_tw: "看心情，有靈感就做" },
+            { id: 7, text_tw: "做選擇時，你通常：", a_tw: "深思熟慮，比較謹慎", b_tw: "憑直覺，有點衝動" },
+            { id: 8, text_tw: "在聚會活動中，你通常：", a_tw: "待得很晚，而且越玩越嗨", b_tw: "想早點離開，覺得能量耗盡" },
+            { id: 9, text_tw: "你比較容易被哪種人吸引：", a_tw: "理智、明理的人", b_tw: "有創意、想像力豐富的人" },
+            { id: 10, text_tw: "你對什麼比較感興趣：", a_tw: "實際發生的現狀", b_tw: "未來可能的發展" },
+            { id: 11, text_tw: "評價別人時，你比較看重：", a_tw: "規定和原則 (法理)", b_tw: "當下的情境與苦衷 (人情)" },
+            { id: 12, text_tw: "與人接觸時，你傾向：", a_tw: "保持客觀、公事公辦", b_tw: "帶入私人情感、建立關係" },
+            { id: 13, text_tw: "你比較屬於：", a_tw: "準時、守規矩的", b_tw: "悠閒、隨興的" },
+            { id: 14, text_tw: "哪種情況更讓你困擾：", a_tw: "事情做到一半沒結尾", b_tw: "事情已經定案不能改了" },
+            { id: 15, text_tw: "在朋友圈或團體裡，你通常：", a_tw: "隨時掌握大家的動態", b_tw: "常常狀況外，最後才知道" },
+            { id: 16, text_tw: "處理日常瑣事時，你比較會：", a_tw: "照慣例、老方法做", b_tw: "用自己獨特的方式做" },
+            { id: 17, text_tw: "作家寫作應該要：", a_tw: "有話直說，清楚明白", b_tw: "多用比喻，帶點意境" },
+            { id: 18, text_tw: "哪個更吸引你：", a_tw: "思想邏輯的一致性", b_tw: "人際關係的和諧" },
+            { id: 19, text_tw: "做哪種判斷讓你比較自在：", a_tw: "邏輯判斷 (理性分析)", b_tw: "價值判斷 (感性衡量)" },
+            { id: 20, text_tw: "你希望事情是：", a_tw: "塵埃落定，決定好的", b_tw: "保持彈性，還沒定案的" },
+            { id: 21, text_tw: "你會說你比較：", a_tw: "嚴肅且意志堅定", b_tw: "隨和好相處" },
+            { id: 22, text_tw: "打電話之前，你會：", a_tw: "不怎麼想，直接打過去", b_tw: "先稍微排練一下要講什麼" },
+            { id: 23, text_tw: "對於「事實」這件事：", a_tw: "事實勝於雄辯 (本身最重要)", b_tw: "是用來佐證原理/道理的" },
+            { id: 24, text_tw: "你覺得滿懷夢想的人(夢想家)：", a_tw: "有點煩 (不切實際)", b_tw: "相當迷人 (有願景)" },
+            { id: 25, text_tw: "你比較常是：", a_tw: "冷靜理性的人", b_tw: "熱心腸、感性的人" },
+            { id: 26, text_tw: "哪種情況比較糟糕：", a_tw: "不公正", b_tw: "無情 (殘忍)" },
+            { id: 27, text_tw: "事情的發生應該：", a_tw: "經過精心挑選和安排", b_tw: "隨機且順其自然" },
+            { id: 28, text_tw: "哪種感覺比較好：", a_tw: "已經買了 (定案了)", b_tw: "還保留購買的選擇權" },
+            { id: 29, text_tw: "在有人陪伴的場合，你會：", a_tw: "主動開啟話題", b_tw: "等別人來找你講話" },
+            { id: 30, text_tw: "所謂的「常識」：", a_tw: "通常是沒問題的，照做就好", b_tw: "常常有待商榷，需要懷疑" },
+            { id: 31, text_tw: "你覺得小孩子通常：", a_tw: "不夠懂事/沒有用處", b_tw: "想像力發揮得不夠" },
+            { id: 32, text_tw: "做決定的時候，你比較依賴：", a_tw: "標準規範", b_tw: "當下的感受" },
+            { id: 33, text_tw: "你比較：", a_tw: "堅定多於溫柔", b_tw: "溫柔多於堅定" },
+            { id: 34, text_tw: "哪種能力更讓人佩服：", a_tw: "組織能力強、有條理", b_tw: "適應力強、隨機應變" },
+            { id: 35, text_tw: "你比較重視：", a_tw: "絕對、永恆的道理", b_tw: "開放的心態" },
+            { id: 36, text_tw: "與他人進行新的、非例行性的互動會：", a_tw: "讓你覺得很刺激、充滿活力", b_tw: "讓你覺得很累、消耗精力" },
+            { id: 37, text_tw: "你比較常是：", a_tw: "務實型的人", b_tw: "充滿幻想型的人" },
+            { id: 38, text_tw: "你比較傾向：", a_tw: "看見別人的用處 (實際面)", b_tw: "理解別人的觀點 (心理面)" },
+            { id: 39, text_tw: "哪種情況讓你比較滿意：", a_tw: "把議題徹底討論清楚", b_tw: "大家對議題達成共識" },
+            { id: 40, text_tw: "誰比較常支配你：", a_tw: "你的大腦 (理性)", b_tw: "你的心 (感性)" },
+            { id: 41, text_tw: "你比較喜歡哪種工作方式：", a_tw: "講好條件、有合約規範的", b_tw: "看狀況、隨興一點的" },
+            { id: 42, text_tw: "你比較喜歡尋找：", a_tw: "有秩序、整齊的事物", b_tw: "隨機出現的驚喜" },
+            { id: 43, text_tw: "你比較喜歡：", a_tw: "朋友很多，但都是淺交", b_tw: "朋友很少，但都是深交" },
+            { id: 44, text_tw: "你做事比較依照：", a_tw: "事實證據", b_tw: "原則理念" },
+            { id: 45, text_tw: "你對什麼比較有興趣：", a_tw: "生產與銷售 (實務面)", b_tw: "設計與研究 (研發面)" },
+            { id: 46, text_tw: "哪句更像是讚美：", a_tw: "「這是一個非常有邏輯的人。」", b_tw: "「這是一個非常重感情的人。」" },
+            { id: 47, text_tw: "你更看重自己的哪一點：", a_tw: "立場堅定", b_tw: "全心奉獻" },
+            { id: 48, text_tw: "你比較喜歡：", a_tw: "最終定案的說法", b_tw: "暫定、初步的說法" },
+            { id: 49, text_tw: "你什麼時候覺得比較自在：", a_tw: "做完決定之後", b_tw: "做決定之前 (還在想)" },
+            { id: 50, text_tw: "你會：", a_tw: "跟陌生人也能侃侃而談", b_tw: "跟陌生人沒什麼話好說" },
+            { id: 51, text_tw: "你比較相信你的：", a_tw: "經驗", b_tw: "直覺" },
+            { id: 52, text_tw: "你覺得自己：", a_tw: "比較務實", b_tw: "比較機靈、有創意" },
+            { id: 53, text_tw: "哪種人更值得讚賞：", a_tw: "思緒清晰的人", b_tw: "情感強烈的人" },
+            { id: 54, text_tw: "你覺得自己比較：", a_tw: "公平公正", b_tw: "有同情心" },
+            { id: 55, text_tw: "通常哪種情況比較好：", a_tw: "確保事情都安排妥當", b_tw: "讓事情順其自然發生" },
+            { id: 56, text_tw: "在人際關係中，大多數事情應該：", a_tw: "可以重新協商的 (有討論空間)", b_tw: "隨機且視情況而定的" },
+            { id: 57, text_tw: "電話響的時候你會：", a_tw: "趕著去接", b_tw: "希望別人去接" },
+            { id: 58, text_tw: "你更看重自己的：", a_tw: "強烈的現實感", b_tw: "豐富的想像力" },
+            { id: 59, text_tw: "你比較容易被什麼吸引：", a_tw: "基本原理", b_tw: "弦外之音 (寓意)" },
+            { id: 60, text_tw: "哪個看起來是更大的錯誤：", a_tw: "太過熱情/情緒化", b_tw: "太過客觀/冷血" },
+            { id: 61, text_tw: "你認為自己基本上是：", a_tw: "實際、頑固的", b_tw: "心軟、仁慈的" },
+            { id: 62, text_tw: "哪種情況更吸引你：", a_tw: "有結構、有排程的", b_tw: "沒結構、沒排程的" },
+            { id: 63, text_tw: "你是這樣的人嗎：", a_tw: "按部就班多於異想天開", b_tw: "異想天開多於按部就班" },
+            { id: 64, text_tw: "你覺得自己：", a_tw: "平易近人、好親近", b_tw: "比較矜持、慢熱" },
+            { id: 65, text_tw: "看文章時你偏好：", a_tw: "直白寫實的", b_tw: "比喻修飾的" },
+            { id: 66, text_tw: "對你來說哪個比較難：", a_tw: "對別人感同身受 (共鳴)", b_tw: "善用別人的能力 (指派任務)" },
+            { id: 67, text_tw: "你更希望自己擁有：", a_tw: "清晰的理性", b_tw: "強烈的同情心" },
+            { id: 68, text_tw: "哪個缺點比較嚴重：", a_tw: "盲目、不分青紅皂白", b_tw: "愛批評、吹毛求疵" },
+            { id: 69, text_tw: "你比較喜歡：", a_tw: "有計畫的活動", b_tw: "臨時起意、說走就走的活動" },
+            { id: 70, text_tw: "你通常比較：", a_tw: "深思熟慮", b_tw: "隨興自然" }
+        ];
+
+        // 擴充版人格分析資料
+        const TypeAnalysis = {
+            "ISTJ": {
+                title: "調查員 (Logician)",
+                desc: "安靜、嚴肅，透過全面性和可靠獲得成功。實際，實事求是，現實。負責任。決定做什麼事情後，就會按部就班地朝目標前進，不被干擾。",
+                strengths: "組織能力強、可靠、注重細節、遵守規則",
+                weaknesses: "可能過於固執、不喜歡變動、有時忽略他人感受",
+                relationships: "忠誠且穩定，但可能不擅長表達情感，需要對方理解你的實際行動就是愛。",
+                career: "會計師、公務員、工程師、律師、行政管理"
+            },
+            "ISFJ": {
+                title: "守衛者 (Defender)",
+                desc: "安靜、友善、負責任和有良心。堅定地致力於完成他們的義務。徹底、費力、精確。忠誠，替人著想，會注意到並記得對他們重要的人的具體細節。",
+                strengths: "體貼、耐心、實務能力強、善於合作",
+                weaknesses: "容易過度勞累、不擅拒絕、對批評敏感",
+                relationships: "非常顧家且體貼，願意為伴侶付出一切，但需要被肯定與感謝。",
+                career: "護理師、社工、教師、行政助理、人資"
+            },
+            "INFJ": {
+                title: "諮詢師 (Advocate)",
+                desc: "尋求思想、關係、物質等之間的意義和聯繫。想了解什麼激勵別人，對人有洞察力。有責任心，堅持自己的價值觀。對於如何最好地為公共利益服務有清晰的願景。",
+                strengths: "有遠見、創意、同理心強、果斷",
+                weaknesses: "完美主義、容易精疲力竭、過於敏感",
+                relationships: "追求深層的心靈連結，對伴侶非常忠誠，但有時會因期望過高而失望。",
+                career: "心理諮商師、作家、非營利組織工作者、藝術家"
+            },
+            "INTJ": {
+                title: "策劃者 (Architect)",
+                desc: "獨創性的思想和對自己的想法和目標的強烈動力。在有吸引力的領域，有能力組織工作並將其進行到底。懷疑、批判、獨立、堅定，對自己和他人都有高標準。",
+                strengths: "策略思考、自信、決斷力強、好學",
+                weaknesses: "傲慢、對他人情緒不敏感、過度分析",
+                relationships: "尋求智力上的匹配，不喜歡戲劇化的情感，需要獨立空間。",
+                career: "科學家、軟體架構師、策略規劃、投資顧問"
+            },
+            "ISTP": {
+                title: "巧匠 (Virtuoso)",
+                desc: "靈活、忍耐力強，是個安靜的觀察者直到有問題發生，就會馬上行動，迅速找到可行的解決方案。分析事物運作的原理，能夠從大量信息中很快的找到關鍵的癥結所在。",
+                strengths: "樂觀、實用主義、危機處理能力佳、隨遇而安",
+                weaknesses: "冒險傾向、難以承諾、容易感到無聊",
+                relationships: "需要大量自由空間，不喜歡被束縛，喜歡透過共同活動來建立感情。",
+                career: "機械工程師、飛行員、警官、急診室醫師"
+            },
+            "ISFP": {
+                title: "探險家 (Adventurer)",
+                desc: "安靜、友善、敏感和仁慈。享受當下，喜歡在自己的時間裡做自己的事情。喜歡有自己的空間，依照自己的時間表工作。忠於自己的價值觀及自己所重視的人。",
+                strengths: "極具魅力、藝術感強、想像力豐富、熱情",
+                weaknesses: "過度競爭、難以預測、容易感到壓力",
+                relationships: "溫柔體貼，喜歡給伴侶驚喜，但需要對方尊重你的隱私與獨立性。",
+                career: "設計師、藝術家、廚師、獸醫、攝影師"
+            },
+            "INFP": {
+                title: "調停者 (Mediator)",
+                desc: "理想主義者，忠於自己的價值觀及自己所重視的人。外在看來冷靜，內在充滿熱情。好奇心重，很快能看到事情的可能性，能成為實現想法的催化劑。",
+                strengths: "慷慨、理想主義、創意十足、心胸開闊",
+                weaknesses: "不切實際、難以專注、容易自我批評",
+                relationships: "浪漫且深情，尋求靈魂伴侶，願意為了理想的愛情付出一切。",
+                career: "作家、編輯、心理學家、輔導員、社會運動家"
+            },
+            "INTP": {
+                title: "邏輯學家 (Logician)",
+                desc: "尋求發展各個領域的邏輯解釋。比起社交更喜歡理論和抽象的事情。安靜、內向、靈活、適應力強。對於自己感興趣的領域有超凡的專注力。",
+                strengths: "分析能力強、原創性高、客觀、心胸開闊",
+                weaknesses: "心不在焉、自我懷疑、對情感遲鈍",
+                relationships: "直率誠實，不喜歡玩心理遊戲，需要伴侶理解你對知識的渴求。",
+                career: "程式設計師、數學家、系統分析師、研究員"
+            },
+            "ESTP": {
+                title: "企業家 (Entrepreneur)",
+                desc: "靈活、忍耐力強，採取務實的方法解決問題。不喜歡理論，傾向於實際解決問題。活在當下，是自然的行動派，喜歡和他人互動。享受物質舒適和時尚。",
+                strengths: "大膽、理性、觀察力強、社交手腕高",
+                weaknesses: "不耐煩、冒險、缺乏大局觀、不守規矩",
+                relationships: "充滿活力與樂趣，喜歡帶著伴侶到處冒險，但不喜歡沉重的承諾。",
+                career: "業務經理、創業者、消防員、運動員"
+            },
+            "ESFP": {
+                title: "表演者 (Entertainer)",
+                desc: "外向、友善、包容。熱愛生活、人類和物質上的享受。喜歡與別人共事。在工作中講究常識和實用性，並使工作變得有趣。富有靈活性和自發性。",
+                strengths: "大膽、原創、美感極佳、觀察力敏銳",
+                weaknesses: "容易感到無聊、計畫性差、逃避衝突",
+                relationships: "熱情且慷慨，喜歡讓伴侶開心，但有時會因為追求新鮮感而忽略長期經營。",
+                career: "活動企劃、公關、演員、導遊、銷售"
+            },
+            "ENFP": {
+                title: "競選者 (Campaigner)",
+                desc: "熱情、富有想像力。認為生活充滿了很多可能性。能很快地看到事情和信息之間的聯繫，並自信地依據這些模式行事。很需要別人的肯定，又樂於欣賞和支持別人。",
+                strengths: "好奇心強、觀察力敏銳、充滿熱情、善於溝通",
+                weaknesses: "思緒雜亂、過度情緒化、想太多",
+                relationships: "投入且充滿激情，喜歡與伴侶分享夢想，但需要對方給予足夠的安全感。",
+                career: "記者、廣告創意、顧問、活動主持人"
+            },
+            "ENTP": {
+                title: "辯論家 (Debater)",
+                desc: "反應快、睿智，有能力解決具有挑戰性的問題。善於分析，喜歡指出邏輯上的漏洞。不喜歡例行公事，很少會用相同的方法做相同的事情，傾向於一個接一個地發展新的愛好。",
+                strengths: "知識淵博、思維敏捷、原創性強、魅力十足",
+                weaknesses: "愛爭辯、不敏感、難以專注細節",
+                relationships: "喜歡智力上的挑戰與成長，希望伴侶能跟上你的思維跳躍。",
+                career: "律師、創業家、工程師、政治家"
+            },
+            "ESTJ": {
+                title: "總經理 (Executive)",
+                desc: "實際、現實主義。果斷，一旦下決心就會馬上行動。善於組織項目和人員。注重效率，喜歡看到事情有具體的成果。喜歡依照既定的規則行事。",
+                strengths: "奉獻精神、意志堅定、誠實直率、組織能力強",
+                weaknesses: "固執、不善變通、批判性強、難以放鬆",
+                relationships: "穩定可靠，會用實際行動照顧伴侶，但可能不擅長處理情緒問題。",
+                career: "高階主管、軍官、法官、專案經理"
+            },
+            "ESFJ": {
+                title: "執政官 (Consul)",
+                desc: "熱心腸、有責任心、合作。希望周邊的環境溫馨而和諧，並為此果斷地執行。喜歡和他人一起精確並及時地完成任務。忠誠，喜歡微小的細節。",
+                strengths: "實用技能強、責任感重、非常忠誠、善於連結",
+                weaknesses: "過度無私、缺乏彈性、需要肯定、不善變通",
+                relationships: "非常重視家庭與承諾，會盡全力讓伴侶感到幸福，但也希望得到同樣的回報。",
+                career: "教師、護理行政、公關、社工"
+            },
+            "ENFJ": {
+                title: "主人公 (Protagonist)",
+                desc: "溫暖、有同情心、反應敏捷、負責任。非常關注別人的情緒、需求和動機。能發現他人的潛能，並希望能幫助他們實現。善於社交，是團隊中的催化劑。",
+                strengths: "寬容、可靠、有魅力、利他主義、天生領導者",
+                weaknesses: "過度理想化、太無私、過於敏感",
+                relationships: "全心全意投入，致力於讓雙方共同成長，是極佳的伴侶與心靈支柱。",
+                career: "教師、人資主管、銷售經理、政治家"
+            },
+            "ENTJ": {
+                title: "指揮官 (Commander)",
+                desc: "坦誠、果斷，善於領導。能很快看到公司/組織程序和政策中的不合理性和低效率，並發展和實施全面的系統來解決組織問題。喜歡長期的規劃和目標設置。",
+                strengths: "效率高、充滿活力、自信、意志堅定、策略思考",
+                weaknesses: "固執、傲慢、對情緒不耐煩、冷酷",
+                relationships: "主導性強，喜歡挑戰與成長，需要一個同樣自信且獨立的伴侶。",
+                career: "CEO、企業顧問、創業家、法官"
+            }
+        };
+
+        // --- 2. 狀態管理 ---
+        const state = {
+            view: 'init',
+            answers: {}, // { id: score } (-3 ~ +3)
+            currentIndex: 0,
+            history: [],
+            currentResult: null,
+            encouragement: "",
+            isTransitioning: false,
+            userName: ""
+        };
+
+        // --- 3. 邏輯函數 ---
+
+        function initApp() {
+            loadHistory();
+            render();
+            setTimeout(() => {
+                state.view = 'home';
+                render();
+            }, 1500);
+        }
+
+        function loadHistory() {
+            try {
+                const saved = localStorage.getItem('mbti_history');
+                if (saved) state.history = JSON.parse(saved);
+            } catch (e) {
+                console.error("讀取失敗", e);
+                state.history = [];
+            }
+        }
+
+        function saveRecord(type, scores) {
+            const newRecord = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                type: type,
+                scores: scores,
+                userName: state.userName.trim() || "匿名"
+            };
+            state.history = [newRecord, ...state.history];
+            localStorage.setItem('mbti_history', JSON.stringify(state.history));
+            return newRecord;
+        }
+
+        function deleteRecord(id) {
+            if (!confirm("確定要刪除這筆紀錄嗎？")) return;
+            state.history = state.history.filter(r => r.id !== id);
+            localStorage.setItem('mbti_history', JSON.stringify(state.history));
+            render();
+        }
+
+        function clearAllData() {
+            if (!confirm("這將清除所有歷史測驗紀錄並重置應用程式。確定嗎？")) return;
+            localStorage.removeItem('mbti_history');
+            state.history = [];
+            state.view = 'home';
+            alert("資料已重置");
+            render();
+        }
+
+        function startTest() {
+            state.answers = {};
+            state.currentIndex = 0;
+            state.currentResult = null;
+            state.encouragement = "";
+            state.isTransitioning = false;
+            state.view = 'test';
+            render();
+        }
+
+        function handleSelect(score) {
+            if (state.isTransitioning) return;
+            state.isTransitioning = true;
+            
+            const currentQ = MBTI_QUESTIONS[state.currentIndex];
+            state.answers[currentQ.id] = score;
+
+            // 微型鼓勵
+            if (state.currentIndex === 17) state.encouragement = "不錯喔！已經完成四分之一了！";
+            else if (state.currentIndex === 35) state.encouragement = "已經一半了！相信你的直覺！";
+            else if (state.currentIndex === 52) state.encouragement = "加油！剩下最後 25% 了！";
+            else if (state.currentIndex === 65) state.encouragement = "最後衝刺，堅持一下！";
+            else state.encouragement = "";
+
+            render();
+
+            setTimeout(() => {
+                if (state.currentIndex < MBTI_QUESTIONS.length - 1) {
+                    state.currentIndex++;
+                    state.encouragement = "";
+                    state.isTransitioning = false;
+                    render();
+                } else {
+                    finishTest();
+                }
+            }, 250);
+        }
+
+        function handleBack() {
+            if (state.currentIndex > 0 && !state.isTransitioning) {
+                state.currentIndex--;
+                state.encouragement = "";
+                render();
+            }
+        }
+
+        function finishTest() {
+            try {
+                const scores = calculateResult();
+                const type = getResultType(scores);
+                const record = saveRecord(type, scores);
+                state.currentResult = record;
+                state.view = 'result';
+            } catch(e) {
+                console.error(e);
+                alert('計算發生錯誤');
+                state.view = 'home';
+            } finally {
+                state.isTransitioning = false;
+                render();
+            }
+        }
+
+        function calculateResult() {
+            let scores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
+            
+            MBTI_QUESTIONS.forEach((q) => {
+                const score = state.answers[q.id]; 
+                if (score === undefined) return;
+                
+                const colIndex = (q.id - 1) % 7; 
+                let leftTrait, rightTrait;
+                
+                if (colIndex === 0) { leftTrait = 'E'; rightTrait = 'I'; }
+                else if (colIndex === 1 || colIndex === 2) { leftTrait = 'S'; rightTrait = 'N'; }
+                else if (colIndex === 3 || colIndex === 4) { leftTrait = 'T'; rightTrait = 'F'; }
+                else if (colIndex === 5 || colIndex === 6) { leftTrait = 'J'; rightTrait = 'P'; }
+
+                if (score < 0) scores[leftTrait] += Math.abs(score);
+                else if (score > 0) scores[rightTrait] += score;
+            });
+            return scores;
+        }
+
+        function getResultType(scores) {
+            let type = "";
+            type += scores.E >= scores.I ? "E" : "I";
+            type += scores.S >= scores.N ? "S" : "N";
+            type += scores.T >= scores.F ? "T" : "F";
+            type += scores.J >= scores.P ? "J" : "P";
+            return type;
+        }
+
+        function formatDate(isoString) {
+            try {
+                const date = new Date(isoString);
+                return `${date.getFullYear()}/${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getDate().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+            } catch (e) {
+                return "未知日期";
+            }
+        }
+
+        // --- 4. 渲染函數 ---
+
+        const app = document.getElementById('app');
+
+        function render() {
+            app.innerHTML = '';
+            if (state.view === 'init') renderInit();
+            else if (state.view === 'home') renderHome();
+            else if (state.view === 'test') renderTest();
+            else if (state.view === 'result') renderResult();
+            else if (state.view === 'history') renderHistory();
+        }
+
+        function renderInit() {
+            app.className = "min-h-screen bg-indigo-50 flex flex-col items-center justify-center fade-in";
+            app.innerHTML = `
+                <div class="bg-white p-8 rounded-full shadow-xl mb-6">
+                    <i class="ph-fill ph-brain w-16 h-16 text-6xl text-indigo-600 animate-pulse"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800 mb-2">人格特質測驗</h1>
+                <div class="flex items-center space-x-2 text-indigo-500">
+                    <i class="ph ph-spinner animate-spin text-xl"></i>
+                    <span class="text-sm font-medium">系統載入中...</span>
+                </div>
+            `;
+        }
+
+        function renderHome() {
+            app.className = "min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 flex items-center justify-center p-4 fade-in";
+            const btnText = state.userName ? `開始 ${state.userName} 的測驗` : '開始測驗';
+            
+            app.innerHTML = `
+                <div class="bg-white max-w-lg w-full rounded-2xl shadow-2xl overflow-hidden p-8 text-center relative fade-in-up">
+                    <div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="ph-fill ph-identification-badge text-4xl text-indigo-600"></i>
+                    </div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">MBTI 人格測驗</h1>
+                    <p class="text-gray-500 mb-6 text-sm">探索您的潛在性格與優勢 (台灣成人通俗版)</p>
+                    
+                    <div class="mb-6 relative">
+                        <i class="ph ph-user absolute left-3 top-3.5 text-xl text-gray-400"></i>
+                        <input type="text" id="userNameInput" value="${state.userName}" placeholder="請輸入您的暱稱 (選填)"
+                            class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition text-gray-800" />
+                    </div>
+
+                    <div class="space-y-3">
+                        <button onclick="startTest()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transform transition hover:scale-[1.02] active:scale-95 text-lg flex items-center justify-center">
+                            ${btnText}
+                        </button>
+                        <button onclick="state.view='history'; render()" class="w-full bg-white hover:bg-gray-50 text-indigo-600 border border-indigo-200 font-bold py-3 rounded-xl shadow-sm transition flex items-center justify-center">
+                            <i class="ph ph-clock-counter-clockwise mr-2 text-xl"></i> 查看歷史紀錄
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-6">共 70 題，約需 5-8 分鐘</p>
+                    
+                    <button onclick="clearAllData()" class="absolute bottom-2 right-2 p-2 text-gray-300 hover:text-red-400 transition" title="重置所有資料">
+                        <i class="ph ph-warning-circle text-lg"></i>
+                    </button>
+                </div>
+            `;
+            
+            const input = document.getElementById('userNameInput');
+            input.addEventListener('input', (e) => {
+                state.userName = e.target.value;
+                const btn = document.querySelector('button[onclick="startTest()"]');
+                if(btn) btn.innerText = state.userName ? `開始 ${state.userName} 的測驗` : '開始測驗';
+            });
+        }
+
+        function renderTest() {
+            app.className = "min-h-screen bg-gray-50 font-sans text-gray-800 flex flex-col";
+            const q = MBTI_QUESTIONS[state.currentIndex];
+            const progress = Math.round(((state.currentIndex) / MBTI_QUESTIONS.length) * 100);
+            
+            let encourageHtml = state.encouragement ? `
+                <div class="absolute top-0 transform -translate-y-full bg-indigo-100 text-indigo-700 px-4 py-1 rounded-full text-sm font-medium shadow-sm mb-4 transition-all fade-in">
+                    ${state.encouragement}
+                </div>` : '';
+
+            const currentVal = state.answers[q.id];
+
+            const renderOptionBtn = (score, label, colorClass, activeClass) => {
+                const isActive = currentVal === score;
+                const opacity = state.isTransitioning && !isActive ? 'opacity-40' : 'opacity-100';
+                
+                return `
+                <button onclick="handleSelect(${score})" 
+                    class="option-btn w-full py-3 px-2 rounded-lg border-2 text-sm font-bold flex flex-col items-center justify-center gap-1
+                    ${isActive ? activeClass : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50'}
+                    ${opacity} disabled:cursor-not-allowed" ${state.isTransitioning ? 'disabled' : ''}>
+                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center ${isActive ? 'border-current' : 'border-gray-300'}">
+                        ${isActive ? '<div class="w-3 h-3 rounded-full bg-current"></div>' : ''}
+                    </div>
+                    <span>${label}</span>
+                </button>`;
+            };
+
+            app.innerHTML = `
+                <div class="w-full h-2 bg-gray-200 fixed top-0 left-0 z-50">
+                    <div class="h-full bg-indigo-600 progress-bar" style="width: ${progress}%"></div>
+                </div>
+
+                <header class="flex justify-between items-center p-4 max-w-2xl mx-auto w-full mt-4">
+                    <button onclick="${state.currentIndex > 0 && !state.isTransitioning ? 'handleBack()' : ''}" 
+                        class="p-2 transition ${state.currentIndex === 0 || state.isTransitioning ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-gray-700'}">
+                        <i class="ph ph-caret-left text-2xl"></i>
+                    </button>
+                    <div class="flex flex-col items-center">
+                        <div class="text-xs font-medium text-gray-400 uppercase tracking-widest">
+                            第 ${state.currentIndex + 1} / ${MBTI_QUESTIONS.length} 題
+                        </div>
+                        ${state.userName ? `<div class="text-xs text-indigo-400 mt-1">${state.userName}</div>` : ''}
+                    </div>
+                    <div class="w-10"></div>
+                </header>
+
+                <main class="flex-1 flex flex-col items-center justify-center p-4 max-w-xl mx-auto w-full relative">
+                    ${encourageHtml}
+
+                    <div class="w-full fade-in-up">
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-6 text-center leading-tight">
+                            ${q.text_tw}
+                        </h2>
+                        
+                        <div class="space-y-6">
+                            <div class="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
+                                <div class="text-lg font-bold text-indigo-900 mb-3 text-center">${q.a_tw}</div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    ${renderOptionBtn(-3, "非常同意", "", "bg-indigo-600 border-indigo-600 text-white shadow-md scale-105")}
+                                    ${renderOptionBtn(-2, "同意", "", "bg-indigo-500 border-indigo-500 text-white shadow-md")}
+                                    ${renderOptionBtn(-1, "有點同意", "", "bg-indigo-400 border-indigo-400 text-white shadow-md")}
+                                </div>
+                            </div>
+
+                            <div class="relative flex py-2 items-center">
+                                <div class="flex-grow border-t border-gray-200"></div>
+                                <span class="flex-shrink-0 mx-4 text-gray-400 text-xs uppercase">OR</span>
+                                <div class="flex-grow border-t border-gray-200"></div>
+                            </div>
+
+                            <div class="bg-purple-50/50 p-4 rounded-2xl border border-purple-100">
+                                <div class="text-lg font-bold text-purple-900 mb-3 text-center">${q.b_tw}</div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    ${renderOptionBtn(1, "有點同意", "", "bg-purple-400 border-purple-400 text-white shadow-md")}
+                                    ${renderOptionBtn(2, "同意", "", "bg-purple-500 border-purple-500 text-white shadow-md")}
+                                    ${renderOptionBtn(3, "非常同意", "", "bg-purple-600 border-purple-600 text-white shadow-md scale-105")}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            `;
+        }
+
+        function renderResult() {
+            if (!state.currentResult) { state.view = 'home'; render(); return; }
+            const { type, scores, date, userName } = state.currentResult;
+            const analysis = TypeAnalysis[type] || { title: type, desc: "資料載入中..." };
+
+            const renderBar = (l, r, lv, rv, lc, rc, color) => {
+                const total = lv + rv || 1;
+                const percentage = (lv / total) * 100;
+                return `
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <div class="flex justify-between mb-2 font-bold text-gray-700">
+                        <span>${l} ${lc}</span>
+                        <span>${r} ${rc}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4 relative overflow-hidden">
+                        <div class="absolute left-0 top-0 bottom-0 ${color} h-full" style="width: ${percentage}%"></div>
+                    </div>
+                    <div class="flex justify-between mt-1 text-xs text-gray-500 font-mono">
+                        <span>${Math.round(percentage)}%</span>
+                        <span>${Math.round(100-percentage)}%</span>
+                    </div>
+                </div>`;
+            };
+
+            const renderCard = (icon, title, content, colorClass) => `
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex items-center mb-3">
+                        <div class="p-2 rounded-lg ${colorClass} mr-3">
+                            <i class="ph-fill ${icon} text-white"></i>
+                        </div>
+                        <h4 class="font-bold text-gray-800">${title}</h4>
+                    </div>
+                    <p class="text-sm text-gray-600 leading-relaxed">${content}</p>
+                </div>
+            `;
+
+            app.innerHTML = `
+                <div class="min-h-screen bg-slate-50 py-8 px-4 fade-in">
+                    <div class="max-w-3xl mx-auto">
+                        <div class="flex justify-between items-center mb-6">
+                            <button onclick="state.view='home'; render()" class="flex items-center text-gray-500 hover:text-indigo-600 transition">
+                                <i class="ph ph-caret-left mr-1 text-lg"></i> 回首頁
+                            </button>
+                            <div class="text-sm text-gray-400">${formatDate(date)}</div>
+                        </div>
+
+                        <div class="bg-white rounded-3xl shadow-xl overflow-hidden slide-in-right">
+                            <div class="bg-indigo-600 px-6 py-10 text-center relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                                <span class="bg-indigo-800 text-indigo-100 px-3 py-1 rounded-full text-xs mb-3 inline-block">
+                                    ${userName || '匿名'} 的分析結果
+                                </span>
+                                <h2 class="text-5xl font-black text-white tracking-wide mb-2">${type}</h2>
+                                <p class="text-indigo-200 text-xl font-bold">${analysis.title.split('(')[0]}</p>
+                            </div>
+                            
+                            <div class="px-6 py-8 space-y-8">
+                                <div class="text-gray-600 leading-relaxed text-lg bg-indigo-50 p-6 rounded-2xl">
+                                    ${analysis.desc}
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    ${renderCard('ph-star', '優勢與強項', analysis.strengths, 'bg-amber-500')}
+                                    ${renderCard('ph-warning', '潛在盲點', analysis.weaknesses, 'bg-red-500')}
+                                    ${renderCard('ph-heart', '人際與情感', analysis.relationships, 'bg-pink-500')}
+                                    ${renderCard('ph-briefcase', '適合職業', analysis.career, 'bg-blue-500')}
+                                </div>
+
+                                <div class="grid gap-4 mt-6">
+                                    <h3 class="font-bold text-gray-800 text-lg mb-2">人格維度分析</h3>
+                                    ${renderBar('E', 'I', scores.E, scores.I, '外向', '內向', 'bg-blue-500')}
+                                    ${renderBar('S', 'N', scores.S, scores.N, '實感', '直覺', 'bg-green-500')}
+                                    ${renderBar('T', 'F', scores.T, scores.F, '思考', '情感', 'bg-red-500')}
+                                    ${renderBar('J', 'P', scores.J, scores.P, '判斷', '感知', 'bg-yellow-500')}
+                                </div>
+
+                                <div class="flex gap-4 pt-4">
+                                    <button onclick="startTest()" class="flex-1 py-3 bg-gray-800 text-white rounded-xl hover:bg-gray-700 shadow-lg flex justify-center items-center gap-2">
+                                        <i class="ph ph-arrow-counter-clockwise text-xl"></i> 重新測驗
+                                    </button>
+                                    <button onclick="state.view='history'; render()" class="flex-1 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 shadow-sm flex justify-center items-center gap-2">
+                                        <i class="ph ph-list text-xl"></i> 歷史紀錄
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderHistory() {
+            let listHtml = '';
+            if (state.history.length === 0) {
+                listHtml = `
+                    <div class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-500">
+                        <i class="ph ph-notebook text-4xl text-gray-300 mb-4 block"></i>
+                        <p>目前還沒有測驗紀錄</p>
+                        <button onclick="startTest()" class="mt-4 text-indigo-600 font-bold hover:underline">去測驗看看</button>
+                    </div>`;
+            } else {
+                listHtml = '<div class="space-y-3">';
+                state.history.forEach(r => {
+                    const analysis = TypeAnalysis[r.type] || { title: r.type };
+                    const typeTitle = analysis.title.split(' ')[0];
+                    listHtml += `
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                            <div class="flex-1 cursor-pointer" onclick="openHistoryRecord(${r.id})">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-bold text-gray-900">${r.userName}</span>
+                                    <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">${formatDate(r.date)}</span>
+                                </div>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-xl font-bold text-indigo-600">${r.type}</span>
+                                    <span class="text-sm text-gray-500">${typeTitle}</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openHistoryRecord(${r.id})" class="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg"><i class="ph ph-caret-right text-xl"></i></button>
+                                <button onclick="deleteRecord(${r.id})" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><i class="ph ph-trash text-xl"></i></button>
+                            </div>
+                        </div>`;
+                });
+                listHtml += '</div>';
+            }
+
+            app.innerHTML = `
+                <div class="min-h-screen bg-slate-50 py-8 px-4 fade-in">
+                    <div class="max-w-2xl mx-auto">
+                        <div class="flex items-center mb-6">
+                            <button onclick="state.view='home'; render()" class="mr-4 p-2 bg-white rounded-full shadow-sm">
+                                <i class="ph ph-caret-left text-xl"></i>
+                            </button>
+                            <h1 class="text-2xl font-bold">歷史紀錄</h1>
+                        </div>
+                        ${listHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        window.openHistoryRecord = function(id) {
+            const record = state.history.find(r => r.id === id);
+            if (record) { state.currentResult = record; state.view = 'result'; render(); }
+        };
+
+        // --- 啟動 ---
+        initApp();
+
+    </script>
+</body>
+</html>
+
+
